@@ -16,6 +16,7 @@ namespace Tsl.Math.Pathfinder
 
         public List<Vector2> FillGrid(List<Vector2> lines)
         {
+            if (lines == null) return null;
             List<Vector2> result = new List<Vector2>();
             for (int i = 0; i < lines.Count - 1; ++i)
             {
