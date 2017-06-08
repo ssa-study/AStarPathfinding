@@ -13,12 +13,12 @@ namespace Tsl.Math.Pathfinder
         public AstarCell goalCell;
 
         private int pathCount = 0;
-        private bool pathfindFinished = false;
+        private bool finished = false;
         private System.Action<AstarCell> MakeRelation;
         private System.Action<List<Vector2>> onGoal;
         private Dictionary<float, AstarCell> goalCandidate = new Dictionary<float, AstarCell>();
 
-        public bool Finished {  get {  return this.pathfindFinished; } }
+        public bool Finished {  get {  return this.finished; } }
         public int PathCount {  get {  return this.pathCount; } }
 
         public void PathFind(AstarCell startCell, 
@@ -32,7 +32,7 @@ namespace Tsl.Math.Pathfinder
             this.MakeRelation = makeRelation;
             this.onGoal = onGoal;
             this.pathCount = 0;
-            this.pathfindFinished = false;
+            this.finished = false;
             this.goalCandidate.Clear();
 
             // スタートマスの回りをスキャン
@@ -43,7 +43,7 @@ namespace Tsl.Math.Pathfinder
 
             if (!initOnly)
             {
-                while(!this.pathfindFinished) pathFindProcess();
+                while(!this.finished) pathFindProcess();
             }
         }
 
@@ -65,7 +65,7 @@ namespace Tsl.Math.Pathfinder
             }
             else
             {   // 解決不能
-                this.pathfindFinished = true;
+                this.finished = true;
                 this.onGoal(null);
             }
             if (this.goalCandidate.Any())
@@ -73,8 +73,7 @@ namespace Tsl.Math.Pathfinder
                 var goal = this.goalCandidate.OrderBy(g => g.Key).ElementAt(0);
                 if (!this.cells.Any(c => c.CellType == AstarCell.Type.Open && c.Score < goal.Key))
                 {
-                    goaled(goal.Value);
-                    this.pathfindFinished = true;
+                    pathfindFinished(goal.Value);
                 }
             }
         }
@@ -115,7 +114,7 @@ namespace Tsl.Math.Pathfinder
             }
         }
 
-        private void goaled(AstarCell cell)
+        private void pathfindFinished(AstarCell cell)
         {
             var pathList = new List<Vector2>();
             pathList.Add(this.goalCell.Position);
@@ -128,6 +127,7 @@ namespace Tsl.Math.Pathfinder
             }
             pathList.Add(this.startCell.Position);
             pathList.Reverse();
+            this.finished = true;
             this.onGoal(pathList);
         }
 

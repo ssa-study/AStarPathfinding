@@ -43,13 +43,14 @@ namespace Tsl.Math.Pathfinder
                     RaycastCell(parent.Position, cell.Position, AstarCell.Type.Removed,
                             rcell =>
                             {
+                                if (rcell == null) return true;
                                 if (rcell.CellType != AstarCell.Type.Removed)
                                 {   // 何かあった
-                                if (rcell.CellType != AstarCell.Type.Block)
+                                    if (rcell.CellType != AstarCell.Type.Block)
                                     {   // ブロックもしくは圏外ではない場合
-                                    if (rcell == cell)
+                                        if (rcell == cell)
                                         {   // 見つかった!
-                                        if (!parent.Contains(cell))
+                                            if (!parent.Contains(cell))
                                             {
                                                 cost = (cell.Position - parent.Position).magnitude;
                                                 parent.AddRelated(cell, cost);

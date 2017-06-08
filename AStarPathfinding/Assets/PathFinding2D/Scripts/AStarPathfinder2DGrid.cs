@@ -23,8 +23,8 @@ namespace Tsl.Math.Pathfinder
             StepNext, // 1ステップずつ
         }
 
-        private int GridWidth { get { return (int)(this.MapRect.width / this.TileSize); } }
-        private int GridHeight { get { return (int)(this.MapRect.height / this.TileSize); } }
+        private int GridWidth { get { return (int)(this.MapRect.width / this.TileSize + 0.01f); } }
+        private int GridHeight { get { return (int)(this.MapRect.height / this.TileSize + 0.01f); } }
 
         // positionから該当するセルのインデックスを取得する。
         // 見つからない場合は-1
@@ -120,9 +120,9 @@ namespace Tsl.Math.Pathfinder
             if (tilesize != 0.0f) this.TileSize = tilesize;
             this.MapRect = mapRect;
             this.cellMapBody = new AstarCell[this.GridHeight * this.GridWidth];
-            for (float y = mapRect.y; y < mapRect.yMax; y += this.TileSize)
+            for (float y = mapRect.y; y <= mapRect.yMax - this.TileSize; y += this.TileSize)
             {
-                for (float x = mapRect.x; x < mapRect.xMax; x += this.TileSize)
+                for (float x = mapRect.x; x <= mapRect.xMax - this.TileSize; x += this.TileSize)
                 {
                     var cell = new AstarCell();
                     cell.Position = new Vector2(x, y);
