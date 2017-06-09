@@ -13,6 +13,7 @@ namespace Tsl.Math.Pathfinder
         public AstarCell goalCell;
 
         private int pathCount = 0;
+        public bool Busy = false;
         private bool finished = false;
         private System.Action<AstarCell> MakeRelation;
         private System.Action<List<Vector2>> onGoal;
@@ -27,6 +28,8 @@ namespace Tsl.Math.Pathfinder
                              System.Action<List<Vector2>> onGoal,
                              bool initOnly = false)
         {
+            if (this.Busy) throw new System.InvalidOperationException();
+            this.Busy = true;
             this.startCell = startCell;
             this.goalCell = goalCell;
             this.MakeRelation = makeRelation;
@@ -36,6 +39,8 @@ namespace Tsl.Math.Pathfinder
             this.goalCandidate.Clear();
 
             // スタートマスの回りをスキャン
+            this.cells.Add(startCell);
+            this.cells.Add(goalCell);
             this.MakeRelation(this.goalCell);
             this.MakeRelation(this.startCell);
 
@@ -67,6 +72,10 @@ namespace Tsl.Math.Pathfinder
             {   // 解決不能
                 this.finished = true;
                 this.onGoal(null);
+                RemoveCell(this.startCell);
+                RemoveCell(this.goalCell);
+
+                this.Busy = false;
             }
             if (this.goalCandidate.Any())
             {   // goalしたものがいる場合、open cellでgoalよりスコアが良いものが無いか探す
@@ -80,7 +89,7 @@ namespace Tsl.Math.Pathfinder
 
         private void ScanAround(AstarCell parent)
         {
-            if (parent.Related.Count == 0)
+            if (parent.Related.Count <= 1)
             {   // 接続情報がない場合は作成する
                 MakeRelation(parent);
             }
@@ -129,6 +138,25 @@ namespace Tsl.Math.Pathfinder
             pathList.Reverse();
             this.finished = true;
             this.onGoal(pathList);
+            var links = this.cells.Sum(c => c.Related.Count);
+            Debug.Log(string.Format("{0} cells {1} links", this.cells.Count, links));
+            RemoveCell(this.startCell);
+            RemoveCell(this.goalCell);
+            this.Busy = false;
+
+        }
+
+        public void RemoveCell(AstarCell cell)
+        {
+            foreach(var target in cell.Related)
+            {   // taget はcellからの接続先
+                var found = target.cell.Related.Find(c => c.cell == cell);
+                if (found.cell == cell)
+                {
+                    target.cell.Related.Remove(found);
+                }
+            }
+            this.cells.Remove(cell);
         }
 
     }

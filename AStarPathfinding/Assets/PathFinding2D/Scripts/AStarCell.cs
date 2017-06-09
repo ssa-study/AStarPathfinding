@@ -36,14 +36,23 @@ namespace Tsl.Math.Pathfinder
         // 接続しているセル
         public List<RelatedData> Related = new List<RelatedData>();
 
-        public void Reset()
+        public void Reset(bool allReset)
         {
-            this.CellType = Type.Removed;
+            if (allReset)
+            {
+                this.CellType = Type.Removed;
+            }
+            else
+            {
+                if (this.CellType != Type.Removed && this.CellType != Type.Block)
+                {
+                    this.CellType = Type.Empty;
+                }
+            }
             this.Score = 0.0f;
             this.Cost = 0.0f;
             this.Hint = 0.0f;
             this.Parent = null;
-            //this.Related.Clear();
         }
 
         public void ClearRelated()

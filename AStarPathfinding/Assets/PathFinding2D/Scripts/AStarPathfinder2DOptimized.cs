@@ -15,7 +15,12 @@ namespace Tsl.Math.Pathfinder
         // 接続情報を生成する
         public override void MakeRelation(AstarCell cell)
         {
-            if (!this.logic.cells.Contains(cell)) this.logic.cells.Add(cell);
+            if (this.logic.cells == null)
+            {
+                Debug.LogError("this.logic.cells is null");
+                throw new System.InvalidOperationException();
+            }
+            // if (!this.logic.cells.Contains(cell)) this.logic.cells.Add(cell);
             setGridRelatedSearchRaycast(cell, true);
         }
 
@@ -250,8 +255,9 @@ namespace Tsl.Math.Pathfinder
             this.logic.cells = this.cellMapBody.Where(c => c.CellType == AstarCell.Type.Empty).Select(c => c as AstarCell).ToList();
             foreach (var cell in this.logic.cells)
             {
-                setGridRelatedSearchRaycast(cell);
+                //setGridRelatedSearchRaycast(cell);
             }
+            this.MapReady = true;
         }
     }
 }

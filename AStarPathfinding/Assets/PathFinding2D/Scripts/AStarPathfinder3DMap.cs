@@ -11,10 +11,23 @@ namespace Tsl.Math.Pathfinder
         public List<string> DisallowTags = new List<string>{"Transparent"};
         public float RayCastY = 0.5f;
         public static AStarPathfinder3DMap Instance;
+        public bool DrawNodeInfomation = false;
 
         void Awake()
         {
             AStarPathfinder3DMap.Instance = this;
+        }
+
+        void Update()
+        {
+            if (this.DrawNodeInfomation)
+            {
+                AStarPathfinder3DMap.Instance.EachCell(drawCell);
+                if (this.logic.Finished)
+                {
+                    AStarPathfinder3DMap.Instance.EachCell(drawCellCorrect);
+                }
+            }
         }
 
 
@@ -41,6 +54,8 @@ namespace Tsl.Math.Pathfinder
         }
 
 
+
+
         public void MapMakeFromScene(float rayCastY)
         {
             const int IgnoreRayCastLayer = ~(1 << 2);
@@ -61,6 +76,45 @@ namespace Tsl.Math.Pathfinder
             });
             this.MapMake();
         }
+
+        private void drawCell(AstarCell cell)
+        {
+            float x=  cell.Position.x;
+            float y = cell.Position.y;
+            float t = this.TileSize * 0.4f;
+            Color[] coltbl = { Color.green, // empty
+                                Color.blue, Color.yellow, Color.white, Color.gray, Color.black, Color.red, new Color(0.1f,0.1f,0.1f,0.1f),
+                                Color.red };
+            var color = coltbl[(int)cell.CellType];
+            if (cell.CellType != Tsl.Math.Pathfinder.AstarCell.Type.Removed)
+            {
+                Debug.DrawLine(new Vector3(x - t, 0.1f, y - t), new Vector3(x + t, 0.1f, y - t), color, 1.0f, false);
+                Debug.DrawLine(new Vector3(x + t, 0.1f, y - t), new Vector3(x + t, 0.1f, y + t), color, 1.0f, false);
+                Debug.DrawLine(new Vector3(x + t, 0.1f, y + t), new Vector3(x - t, 0.1f, y + t), color, 1.0f, false);
+                Debug.DrawLine(new Vector3(x - t, 0.1f, y + t), new Vector3(x - t, 0.1f, y - t), color, 1.0f, false);
+            
+                foreach(var r in cell.Related)
+                {
+                    var p = r.cell.Position;
+                    Debug.DrawLine(new Vector3(x, 0.1f, y), new Vector3(p.x, 0.1f, p.y), new Color(0.0f,1.0f,1.0f,0.2f));
+                }
+            }
+        }
+        private void drawCellCorrect(AstarCell cell)
+        {
+            if (cell.CellType == AstarCell.Type.Correct || cell.CellType == AstarCell.Type.Start || cell.CellType == AstarCell.Type.Goal)
+            {
+                foreach(var r in cell.Related)
+                {
+                    if (r.cell.CellType == Tsl.Math.Pathfinder.AstarCell.Type.Correct)
+                    {
+                        var p = r.cell.Position;
+                        Debug.DrawLine(new Vector3(cell.Position.x, 0.1f, cell.Position.y), new Vector3(p.x, 0.1f, p.y), Color.red, 1.0f, false);
+                    }
+                }
+            }
+        }
+
     }
 }
 

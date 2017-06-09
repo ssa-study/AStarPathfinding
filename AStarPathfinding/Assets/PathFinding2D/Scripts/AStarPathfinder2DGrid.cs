@@ -9,6 +9,7 @@ namespace Tsl.Math.Pathfinder
     {
         public float TileSize = 1.0f;
         public int ProcessCoroutineFactor = 1; // CoroutineでPathfindを実行するときの重み
+        public bool MapReady = false;
         protected AstarCell[] cellMapBody;
         protected Rect MapRect = new Rect(0, 0, 16, 16);
         protected List<Vector2> pathList; // 結果を一時的に保存する
@@ -25,6 +26,31 @@ namespace Tsl.Math.Pathfinder
 
         private int GridWidth { get { return (int)(this.MapRect.width / this.TileSize + 0.01f); } }
         private int GridHeight { get { return (int)(this.MapRect.height / this.TileSize + 0.01f); } }
+
+        class PathFindQueue
+        { 
+            public Vector2 start;
+            public Vector2 end;
+            public System.Action<List<Vector2>> onEnd;
+        }
+
+        Queue<PathFindQueue> pathFindQueue = new Queue<PathFindQueue>();
+        System.DateTime startTime;
+
+
+        void FixedUpdate()
+        {
+            if (this.MapReady && this.pathFindQueue.Any() && !this.logic.Busy)
+            {   // キューにタスクがあって計算中ではない場合
+                Reset(false);
+                var param = this.pathFindQueue.Dequeue();
+                PathFind(param.start, param.end, param.onEnd, ExecuteMode.ASync);
+            }
+            else if (this.logic.Busy && this.executeMode == ExecuteMode.ASync)
+            {
+                pathFindProcessCoroutine();
+            }
+        }
 
         // positionから該当するセルのインデックスを取得する。
         // 見つからない場合は-1
@@ -76,10 +102,20 @@ namespace Tsl.Math.Pathfinder
         // 動的なセルの追加(状態変更)
         public AstarCell SetCellTypeImmediate(Vector2 pos, AstarCell.Type type)
         {
-            var cell = CellMap(pos);
-            cell.CellType = type;
-            MakeRelation(cell);
-            return cell;
+            if (type == AstarCell.Type.Start || type == AstarCell.Type.Goal)
+            {
+                var cell = new AstarCell();
+                cell.CellType = type;
+                cell.Position = pos;
+                return cell;
+            }
+            else
+            {
+                var cell = CellMap(pos);
+                cell.CellType = type;
+                MakeRelation(cell);
+                return cell;
+            }
         }
 
         // セル間の接続情報の生成
@@ -138,34 +174,50 @@ namespace Tsl.Math.Pathfinder
             this.cellMapBody = src.cellMapBody;
         }
 
-        public void Reset()
+        public void Reset(bool allReset = true)
         {
             foreach (var cell in this.cellMapBody)
             {
                 if (cell.CellType != AstarCell.Type.Block)
                 {
-                    cell.Reset();
+                    cell.Reset(allReset);
                 }
             }
         }
+
+        public void InsertInQueue(Vector2 start, Vector2 end, System.Action<List<Vector2>> act)
+        {
+            this.pathFindQueue.Enqueue(new PathFindQueue { start = start, end = end, onEnd = act});
+        }
+
+
+        ExecuteMode executeMode = ExecuteMode.Sync;
 
         public void PathFind(Vector2 start,
                              Vector2 goal,
                              System.Action<List<Vector2>> onEnd = null,
                              ExecuteMode mode = ExecuteMode.ASync)
         {
+            this.startTime = System.DateTime.Now;
+            this.executeMode = mode;
+            System.Action<List<Vector2>> onFinish = r =>
+            {
+                Debug.Log(string.Format("PathFind time: {0} second", (System.DateTime.Now - this.startTime).TotalSeconds));
+                onEnd(r);
+            };
+
             if (mode != ExecuteMode.StepNext)
             {
                 var startCell = SetCellTypeImmediate(start, AstarCell.Type.Start);
                 var goalCell = SetCellTypeImmediate(goal, AstarCell.Type.Goal);
-                this.logic.PathFind(startCell, goalCell, this.MakeRelation, onEnd, mode != ExecuteMode.Sync);
+                this.logic.PathFind(startCell, goalCell, this.MakeRelation, onFinish, mode != ExecuteMode.Sync);
             }
             switch(mode)
             {
                 case ExecuteMode.Sync:
                     break;
                 case ExecuteMode.ASync:
-                    StartCoroutine(pathFindProcessCoroutine());
+                    pathFindProcessCoroutine();
                     break;
                 case ExecuteMode.StepFirst:
                 case ExecuteMode.StepNext:
@@ -177,15 +229,11 @@ namespace Tsl.Math.Pathfinder
         }
 
         // CoroutineでPathfindを実行する
-        private IEnumerator pathFindProcessCoroutine()
+        private void pathFindProcessCoroutine()
         {
-            while(!this.logic.Finished)
+            for (int i = 0; i <= this.ProcessCoroutineFactor && !this.logic.Finished; ++i)
             {
-                for (int i = 0; i <= this.ProcessCoroutineFactor && !this.logic.Finished; ++i)
-                {
-                    this.logic.pathFindProcess();
-                }
-                yield return null;
+                this.logic.pathFindProcess();
             }
         }
     }
