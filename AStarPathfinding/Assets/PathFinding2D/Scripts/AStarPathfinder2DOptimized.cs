@@ -27,7 +27,7 @@ namespace Tsl.Math.Pathfinder
         // 到達可能なノードを全ノードからレイキャストして調べる
         public void setGridRelatedSearchRaycast(AstarCell parent, bool newCell = false)
         {
-            parent.ClearRelated();
+            //parent.ClearRelated();
             foreach (var cell in this.logic.cells.Where(c => c.IsValidCell()))
             {
                 if (cell == parent) continue;
@@ -112,7 +112,70 @@ namespace Tsl.Math.Pathfinder
         }
 
         // (src,target] までDDAでトレースする
-        public abstract void RaycastCell(Vector2 src, Vector2 target, AstarCell.Type ignore, System.Func<AstarCell, bool> act);
+        // DDAでレイキャスト
+        // (src,target] までDDAでトレースする
+        public virtual void RaycastCell(Vector2 src, Vector2 target, AstarCell.Type ignore, System.Func<AstarCell, bool> act)
+        {
+            int ix = (int)((src.x - this.MapRect.x) / this.TileSize + 0.5f);
+            int iy = (int)((src.y - this.MapRect.y) / this.TileSize + 0.5f);
+            int tx = (int)((target.x - this.MapRect.x) / this.TileSize + 0.5f);
+            int ty = (int)((target.y - this.MapRect.y) / this.TileSize + 0.5f);
+
+
+            int sx = ix > tx ? -1 : 1;
+            int sy = iy > ty ? -1 : 1;
+            int dx = Mathf.Abs(tx - ix);
+            int dy = Mathf.Abs(ty - iy);
+            if (dx == dy)
+            {   //ななめ45度
+                while (true)
+                {
+                    ix += sx;
+                    iy += sy;
+                    if (--dx < 0) break;
+                    if (this.CellType(ix, iy) != ignore)
+                    {
+                        if (act(this.Cell(ix, iy))) return;
+                    }
+                }
+            }
+            else if (dx > dy)
+            {   // 横に長い
+                int r = dx / 2;
+                while (sx > 0 ? ix < tx : ix > tx)
+                {
+                    ix += sx;
+                    r -= dy;
+                    if (r < 0)
+                    {
+                        r += dx;
+                        iy += sy;
+                    }
+                    if (this.CellType(ix, iy) != ignore)
+                    {
+                        if (act(this.Cell(ix, iy))) return;
+                    }
+                }
+            }
+            else
+            {   // 縦に長い
+                int r = dy / 2;
+                while (sy > 0 ? iy < ty : iy > ty)
+                {
+                    iy += sy;
+                    r -= dx;
+                    if (r < 0)
+                    {
+                        r += dy;
+                        ix += sx;
+                    }
+                    if (this.CellType(ix, iy) != ignore)
+                    {
+                        if (act(this.Cell(ix, iy))) return;
+                    }
+                }
+            }
+        }
 
         // 基本的なAStartでは処理が冗長のため、最適化を行う
         // 障害物の凸頂点以外のノードを削除する

@@ -55,6 +55,10 @@ namespace Tsl.Math.Pathfinder
         public void pathFindProcess()
         {
             ++this.pathCount;
+            if (this.cells == null)
+            {
+                throw new System.InvalidOperationException();
+            }
             var cells = this.cells.Where(c => c.CellType == AstarCell.Type.Open)
                         .OrderBy(c => c.Score)
                         .ThenBy(c => c.Cost);
@@ -89,11 +93,10 @@ namespace Tsl.Math.Pathfinder
 
         private void ScanAround(AstarCell parent)
         {
-            if (parent.Related.Count <= 1)
-            {   // 接続情報がない場合は作成する
-                MakeRelation(parent);
-            }
-            foreach(var related in parent.Related)
+            // 接続情報を作成する
+            MakeRelation(parent);
+
+            foreach (var related in parent.Related)
             { 
                 if (related.cell.CellType == AstarCell.Type.Goal)
                 {   // !! GOAL!
