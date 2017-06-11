@@ -62,7 +62,7 @@ namespace Tsl.Math.Pathfinder
             if (cells.Any())
             {
                 var score = cells.ElementAt(0).Score;
-                foreach (var cell in cells.Where(c => c.Score == score))
+                foreach (var cell in cells.Where(c => Mathf.Abs(c.Score - score) < 0.1f))
                 {
                     ScanAround(cell);
                     cell.CellType = AstarCell.Type.Close;
@@ -80,7 +80,7 @@ namespace Tsl.Math.Pathfinder
             if (this.goalCandidate.Any())
             {   // goalしたものがいる場合、open cellでgoalよりスコアが良いものが無いか探す
                 var goal = this.goalCandidate.OrderBy(g => g.Key).ElementAt(0);
-                if (!this.cells.Any(c => c.CellType == AstarCell.Type.Open && c.Score < goal.Key))
+                if (!this.cells.Any(c => c.CellType == AstarCell.Type.Open && c.Score <= goal.Key))
                 {
                     pathfindFinished(goal.Value);
                 }

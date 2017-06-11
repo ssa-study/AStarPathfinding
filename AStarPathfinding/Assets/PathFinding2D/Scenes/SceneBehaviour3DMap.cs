@@ -32,6 +32,7 @@ public class SceneBehaviour3DMap : MonoBehaviour {
     private float distance = 0;
 
     private int fixedUpdateCount = 0;
+    private List<Vector2> lines;
 
     // Use this for initialization
     void Start () 
@@ -59,7 +60,15 @@ public class SceneBehaviour3DMap : MonoBehaviour {
                 this.distance);
             this.interval = 30;
         }
-
+        if (this.lines != null)
+        {
+            for (int i = 0; i < lines.Count - 1; ++i)
+            {
+                Debug.DrawLine(new Vector3(this.lines[i].x, this.RayCastY, this.lines[i].y),
+                    new Vector3(this.lines[i + 1].x, this.RayCastY+10.0f, this.lines[i + 1].y),
+                    Color.magenta); //, 9999.0f, false);
+            }
+        }
     }
 
 
@@ -68,6 +77,7 @@ public class SceneBehaviour3DMap : MonoBehaviour {
         AStarPathfinder3DMap.Instance.Reset();
         AStarPathfinder3DMap.Instance.MapMake();
         this.goled = false;
+        this.lines = null;
     }
 
     // (x,z)をvector2(x,y)に変換
@@ -94,15 +104,18 @@ public class SceneBehaviour3DMap : MonoBehaviour {
 
     private void DrawLine(List<Vector2> lines)
     {
+        this.lines = new List<Vector2>();
         this.distance = 0.0f;
         if (lines != null)
         {
             for (int i = 0; i < lines.Count - 1; ++i)
             {
+                this.lines.Add(lines[i]);
                 this.distance += (lines[i+1] - lines[i]).magnitude;
             }
+        this.lines.Add(lines[lines.Count - 1]);
         }
-    }
+}
 
     private void makeBlocks()
     {
@@ -143,6 +156,7 @@ public class SceneBehaviour3DMap : MonoBehaviour {
     public void OnClickClear()
     {
         AStarPathfinder3DMap.Instance.EachCell(cell => cell.CellType = AstarCell.Type.Removed);
+        this.lines = null;
     }
 
     public void OnClickAutoTest()
