@@ -12,6 +12,9 @@ namespace Tsl.Math.Pathfinder
     {
         public bool GridMode = true; // 最適化時に、結果をグリッドのリストに変換する
 
+        private AstarCell.Type[,] cellType;
+
+
         // 接続情報を生成する
         public override void MakeRelation(AstarCell cell)
         {
@@ -132,12 +135,14 @@ namespace Tsl.Math.Pathfinder
                     cell = new AstarCell();
                     cell.CellType = type;
                     cell.Position = pos;
+                    setCellType(cell);
                     MakeRelation(cell);
                     this.logic.cells.Add(cell);
                 }
                 else
                 {
                     cell.CellType = type;
+                    setCellType(cell);
                     MakeRelation(cell);
                     if (!this.logic.cells.Contains(cell)) this.logic.cells.Add(cell);
                 }
@@ -168,7 +173,7 @@ namespace Tsl.Math.Pathfinder
                     ix += sx;
                     iy += sy;
                     if (--dx < 0) break;
-                    if (this.CellType(ix, iy) != ignore)
+                    if (this.cellType[ix, iy] != ignore)
                     {
                         if (act(this.Cell(ix, iy))) return;
                     }
@@ -186,7 +191,7 @@ namespace Tsl.Math.Pathfinder
                         r += dx;
                         iy += sy;
                     }
-                    if (this.CellType(ix, iy) != ignore)
+                    if (this.cellType[ix, iy] != ignore)
                     {
                         if (act(this.Cell(ix, iy))) return;
                     }
@@ -204,7 +209,7 @@ namespace Tsl.Math.Pathfinder
                         r += dy;
                         ix += sx;
                     }
-                    if (this.CellType(ix, iy) != ignore)
+                    if (this.cellType[ix, iy] != ignore)
                     {
                         if (act(this.Cell(ix, iy))) return;
                     }
@@ -349,13 +354,23 @@ namespace Tsl.Math.Pathfinder
                 }
             }
 
+            // キャッシュ用セルを作成
+            this.cellType = new AstarCell.Type[this.GridWidth, this.GridHeight];
+            foreach (var cell in this.cellMapBody)
+            {
+                setCellType(cell);
+            }
+
             // 残ったセルに対して、接続情報をセットする
             this.logic.cells = this.cellMapBody.Where(c => c.CellType == AstarCell.Type.Empty).Select(c => c as AstarCell).ToList();
-            foreach (var cell in this.logic.cells)
-            {
-                //setGridRelatedSearchRaycast(cell);
-            }
             this.MapReady = true;
+        }
+
+        private void setCellType(AstarCell cell)
+        {
+            int ix = (int)((cell.Position.x - this.MapRect.x) / this.TileSize + 0.5f);
+            int iy = (int)((cell.Position.y - this.MapRect.y) / this.TileSize + 0.5f);
+            this.cellType[ix, iy] = cell.CellType;
         }
     }
 }
