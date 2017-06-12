@@ -21,7 +21,7 @@ namespace Tsl.Math.Pathfinder
 
         void Update()
         {
-            if (this.DrawNodeInfomation)
+            if (this.DrawNodeInfomation && AStarPathfinder3DMap.Instance.MapReady)
             {
                 AStarPathfinder3DMap.Instance.EachCell(drawCell);
                 if (this.logic.Finished)

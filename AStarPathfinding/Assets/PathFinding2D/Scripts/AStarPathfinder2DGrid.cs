@@ -159,13 +159,29 @@ namespace Tsl.Math.Pathfinder
             if (tilesize != 0.0f) this.TileSize = tilesize;
             this.MapRect = mapRect;
             this.cellMapBody = new AstarCell[this.GridHeight * this.GridWidth];
-            for (float y = mapRect.y; y <= mapRect.yMax - this.TileSize; y += this.TileSize)
+            for (int iy = 0; iy < this.GridHeight; ++iy)
             {
-                for (float x = mapRect.x; x <= mapRect.xMax - this.TileSize; x += this.TileSize)
+                float y = mapRect.y + iy * this.TileSize;
+                for (int ix = 0; ix < this.GridWidth; ++ix)
                 {
+                    float x = mapRect.x + ix * this.TileSize;
                     var cell = new AstarCell();
                     cell.Position = new Vector2(x, y);
                     cellMapBody[cellIndex(cell.Position)] = cell;
+                }
+            }
+            if (this.cellMapBody.Any(c => c == null))
+            {
+                for (int i = 0 ;i  < this.cellMapBody.Count(); ++i)
+                {
+                    if (this.cellMapBody[i] == null)
+                    {
+                        int x = i % this.GridWidth;
+                        int y = i / this.GridWidth;
+                        int idx = cellIndex(new Vector2(mapRect.x + x * this.TileSize, mapRect.y + y * this.TileSize));
+                        Debug.LogError(string.Format("cellMapBody has null: {0}  x:{1}, y:{2}, cellindex={3}", i, x, y, idx));
+                        break;
+                    }
                 }
             }
         }

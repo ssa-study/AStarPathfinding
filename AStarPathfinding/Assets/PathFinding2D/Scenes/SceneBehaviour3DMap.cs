@@ -51,13 +51,16 @@ public class SceneBehaviour3DMap : MonoBehaviour {
     {
         if (this.interval-- == 0)
         {
-            var info = AStarPathfinder3DMap.Instance.Info();
-            this.MessageText.text = string.Format("{0} Nodes {1} Blocks\n{2} Links\n{3} Paths\ndistance={4}",
-                info[(int)AstarCell.Type.Empty] + info[(int)AstarCell.Type.Open] + info[(int)AstarCell.Type.Close],
-                info[(int)AstarCell.Type.Block],
-                info[(int)AstarCell.Type.Links],
-                AStarPathfinder3DMap.Instance.PathCount,
-                this.distance);
+            if (AStarPathfinder3DMap.Instance.MapReady)
+            {
+                var info = AStarPathfinder3DMap.Instance.Info();
+                this.MessageText.text = string.Format("{0} Nodes {1} Blocks\n{2} Links\n{3} Paths\ndistance={4}",
+                    info[(int)AstarCell.Type.Empty] + info[(int)AstarCell.Type.Open] + info[(int)AstarCell.Type.Close],
+                    info[(int)AstarCell.Type.Block],
+                    info[(int)AstarCell.Type.Links],
+                    AStarPathfinder3DMap.Instance.PathCount,
+                    this.distance);
+            }
             this.interval = 30;
         }
         if (this.lines != null)
