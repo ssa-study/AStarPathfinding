@@ -10,12 +10,14 @@ namespace Tsl.Math.Pathfinder
         public float TileSize = 1.0f;
         public int ProcessCoroutineFactor = 1; // CoroutineでPathfindを実行するときの重み
         public bool MapReady = false;
+        public bool DebugHaltMode = false; // DebugHalt == trueで一時停止する
+        public bool DebugHalt = false; // 一時停止（デバッグ用)
         protected AstarCell[] cellMapBody;
         protected Rect MapRect = new Rect(0, 0, 16, 16);
         protected List<Vector2> pathList; // 結果を一時的に保存する
         
         protected AStarPathfindLogic logic = new AStarPathfindLogic();
-
+        
         public enum ExecuteMode
         {
             Sync, // 最後までノンストップ
@@ -40,6 +42,7 @@ namespace Tsl.Math.Pathfinder
 
         void FixedUpdate()
         {
+            if (this.DebugHaltMode && this.DebugHalt) return;
             if (this.MapReady && this.pathFindQueue.Any() && !this.logic.Busy)
             {   // キューにタスクがあって計算中ではない場合
                 Reset(false);
@@ -76,7 +79,14 @@ namespace Tsl.Math.Pathfinder
 
         public void EachCell(System.Action<AstarCell> act)
         {
-            foreach(var cell in this.cellMapBody)
+            foreach (var cell in this.cellMapBody)
+            {
+                act(cell);
+            }
+        }
+        public void EachLogicCell(System.Action<AstarCell> act)
+        {
+            foreach (var cell in this.logic.cells)
             {
                 act(cell);
             }
@@ -222,16 +232,33 @@ namespace Tsl.Math.Pathfinder
             System.Action<List<Vector2>> onFinish = r =>
             {
                 Debug.Log(string.Format("PathFind time: {0} second", (System.DateTime.Now - this.startTime).TotalSeconds));
-                onEnd(r);
-                RemoveCell(this.logic.startCell);
-                RemoveCell(this.logic.goalCell);
+                if (this.DebugHaltMode && r == null)
+                {
+                    this.DebugHalt = true;
+                }
+                else
+                {
+                    onEnd(r);
+                    RemoveCell(this.logic.startCell);
+                    RemoveCell(this.logic.goalCell);
+                }
             };
 
             if (mode != ExecuteMode.StepNext)
             {   // 初回のPathFind
-                var startCell = AddCellImmediate(start, AstarCell.Type.Start);
-                var goalCell = AddCellImmediate(goal, AstarCell.Type.Goal);
-                this.logic.PathFind(startCell, goalCell, this.MakeRelation, onFinish, mode != ExecuteMode.Sync);
+                if (this.CellMap(goal).CellType == AstarCell.Type.Block)
+                {   // ゴールに到達不能
+                    Debug.LogWarning("gold is in block");
+                    onEnd(null);
+                    return;
+                }
+                else
+                {
+                    var startCell = AddCellImmediate(start, AstarCell.Type.Start);
+                    var goalCell = AddCellImmediate(goal, AstarCell.Type.Goal);
+                    this.logic.PathFind(startCell, goalCell, this.MakeRelation, onFinish, mode != ExecuteMode.Sync);
+                    return;
+                }
             }
             switch(mode)
             {

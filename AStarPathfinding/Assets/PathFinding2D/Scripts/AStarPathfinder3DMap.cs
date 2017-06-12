@@ -28,6 +28,13 @@ namespace Tsl.Math.Pathfinder
                 {
                     AStarPathfinder3DMap.Instance.EachCell(drawCellCorrect);
                 }
+                AStarPathfinder3DMap.Instance.EachLogicCell(cell =>
+                {
+                    if (cell.CellType == AstarCell.Type.Start || cell.CellType == AstarCell.Type.Goal)
+                    {
+                        drawCell(cell);
+                    }
+                });
             }
         }
 
@@ -73,7 +80,16 @@ namespace Tsl.Math.Pathfinder
                                                 IgnoreRayCastLayer);
 
 
-                if (hits.Any(h => !this.DisallowTags.Contains(h.transform.tag)))                                                   
+                if (hits.Any(h =>
+                {
+                    var c = !this.DisallowTags.Contains(h.transform.tag);
+                    if (c)
+                    {
+                        Debug.Log(h.transform.tag + " is no contains in DisallowTags");
+                    }
+                    return c;
+                }
+                    ))                                                   
                 {   // 何かに衝突した
                     cell.CellType = AstarCell.Type.Block;
                 }
