@@ -40,7 +40,7 @@ namespace Tsl.UI.Pathfinder
         {
             if (this.CellType == AstarCell.Type.Empty || this.CellType ==  AstarCell.Type.Correct)
             {
-                Tsl.Math.Pathfinder.AStarPathfinder2D.Instance.setGridRelatedSearchRaycast(this.AstarCell);
+                Tsl.Math.Pathfinder.AStarPathfinder2DOptimized.Instance.setGridRelatedSearchRaycast(this.AstarCell);
                 var newtype = this.CellType == AstarCell.Type.Empty ? AstarCell.Type.Correct : AstarCell.Type.Empty;
                 foreach(var cell in this.AstarCell.Related)
                 {

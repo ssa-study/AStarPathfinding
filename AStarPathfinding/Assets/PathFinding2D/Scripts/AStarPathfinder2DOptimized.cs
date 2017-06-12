@@ -132,7 +132,14 @@ namespace Tsl.Math.Pathfinder
             else
             {
                 AstarCell cell = null;
-                if (!(type == AstarCell.Type.Start || type == AstarCell.Type.Goal))
+                if (type == AstarCell.Type.Start || type == AstarCell.Type.Goal)
+                {   // スタートかゴールがブロックの場合はエラー
+                    if (CellMap(pos).CellType == AstarCell.Type.Block)
+                    {
+                        return null;
+                    }
+                }
+                else
                 {   // StartとGoal以外はセルを探す
                     cell = CellMap(pos);
                 }
@@ -365,10 +372,12 @@ namespace Tsl.Math.Pathfinder
                         }
                         // 3連続の中を抜く
                         //  ?  *  ?      ?  *  ?
-                        //  ?  *  ?   => ?  □  ?
+                        // !*  *  !*  => ?  □  ?
                         //  ?  *  ?      ?  *  ?
                         if ((angle == 0 || angle == 4) &&
-                            m(1,0) == AstarCell.Type.Empty && m(1,1) == AstarCell.Type.Empty && m( 1,2) == AstarCell.Type.Empty)
+                            m(1,0) == AstarCell.Type.Empty && m(1,1) == AstarCell.Type.Empty && m( 1,2) == AstarCell.Type.Empty
+                          && (m(0,1) != AstarCell.Type.Empty && m(2,1) != AstarCell.Type.Empty)
+                            )
                         {
                             removeList.Add(cell);
                         }
@@ -398,7 +407,15 @@ namespace Tsl.Math.Pathfinder
         {
             int ix = (int)((cell.Position.x - this.MapRect.x) / this.TileSize + 0.5f);
             int iy = (int)((cell.Position.y - this.MapRect.y) / this.TileSize + 0.5f);
-            this.cellType[ix, iy] = cell.CellType;
+            if (ix < 0 || ix >= this.GridWidth || iy < 0 || iy > this.GridHeight)
+            {
+                Debug.LogError(string.Format("invalid cell position({0},{1})", cell.Position.x, cell.Position.y));
+
+            }
+            else
+            {
+                this.cellType[ix, iy] = cell.CellType;
+            }
         }
 
         // linesで示される経路をグリッドベースに変換する

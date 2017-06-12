@@ -5,55 +5,53 @@ using System.Linq;
 
 namespace Tsl.Math.Pathfinder
 {
-    public class AStarPathfinder2DGrid : MonoBehaviour
+    // 2DグリッドタイプでのAStar Pathfindingのベースクラス
+    public abstract class AStarPathfinder2DGrid : AStarPathfinder2D
     {
         public float TileSize = 1.0f;
-        public int ProcessCoroutineFactor = 1; // CoroutineでPathfindを実行するときの重み
-        public bool MapReady = false;
-        public bool DebugHaltMode = false; // DebugHalt == trueで一時停止する
-        public bool DebugHalt = false; // 一時停止（デバッグ用)
+
         protected AstarCell[] cellMapBody;
-        protected Rect MapRect = new Rect(0, 0, 16, 16);
-        protected List<Vector2> pathList; // 結果を一時的に保存する
-        
-        protected AStarPathfindLogic logic = new AStarPathfindLogic();
-        
-        public enum ExecuteMode
+        protected int GridWidth = 1;
+        protected int GridHeight = 1;
+
+
+        // intで評価されるmapRectのグリッドセルで初期化
+        public void MapInit(Rect mapRect, float tilesize = 0.0f)
         {
-            Sync, // 最後までノンストップ
-            ASync, // Coroutineで実行
-            StepFirst, // 1ステップずつ
-            StepNext, // 1ステップずつ
-        }
+            if (tilesize != 0.0f) this.TileSize = tilesize;
+            this.MapRect = mapRect;
 
-        protected int GridWidth { get { return (int)(this.MapRect.width / this.TileSize + 0.5f); } }
-        protected int GridHeight { get { return (int)(this.MapRect.height / this.TileSize + 0.5f); } }
+            // グリッドのサイズを計算しておく
+            this.GridWidth  = (int)(this.MapRect.width / this.TileSize + 0.5f);
+            this.GridHeight = (int)(this.MapRect.height / this.TileSize + 0.5f);
 
-        class PathFindQueue
-        { 
-            public Vector2 start;
-            public Vector2 end;
-            public System.Action<List<Vector2>> onEnd;
-        }
+            // グリッドを埋め尽くすセルの配列
+            this.cellMapBody = new AstarCell[this.GridHeight * this.GridWidth];
 
-        Queue<PathFindQueue> pathFindQueue = new Queue<PathFindQueue>();
-        System.DateTime startTime;
-
-
-        void FixedUpdate()
-        {
-            if (this.DebugHaltMode && this.DebugHalt) return;
-            if (this.MapReady && this.pathFindQueue.Any() && !this.logic.Busy)
-            {   // キューにタスクがあって計算中ではない場合
-                Reset(false);
-                var param = this.pathFindQueue.Dequeue();
-                PathFind(param.start, param.end, param.onEnd, ExecuteMode.ASync);
-            }
-            else if (this.logic.Busy && this.executeMode == ExecuteMode.ASync)
+            // グリッドをセルの実体で埋め尽くす
+            for (int iy = 0; iy < this.GridHeight; ++iy)
             {
-                pathFindProcessCoroutine();
+                float y = mapRect.y + iy * this.TileSize;
+                for (int ix = 0; ix < this.GridWidth; ++ix)
+                {
+                    float x = mapRect.x + ix * this.TileSize;
+                    var cell = new AstarCell();
+                    cell.Position = new Vector2(x, y);
+                    cellMapBody[cellIndex(cell.Position)] = cell;
+                }
             }
         }
+
+        // srcのマップをコピー cellMapBodyを共有するときに使用する
+        public void MapInit(AStarPathfinder2DGrid src)
+        {
+            this.TileSize = src.TileSize;
+            this.MapRect = src.MapRect;
+            this.cellMapBody = src.cellMapBody;
+            this.GridHeight = src.GridHeight;
+            this.GridWidth = src.GridWidth;
+        }
+
 
         // positionから該当するセルのインデックスを取得する。
         // 見つからない場合は-1
@@ -110,15 +108,16 @@ namespace Tsl.Math.Pathfinder
         }
 
         // 動的なセルの追加(状態変更)
-        public virtual AstarCell AddCellImmediate(Vector2 pos, AstarCell.Type type)
+        public override AstarCell AddCellImmediate(Vector2 pos, AstarCell.Type type)
         {   // グリッドタイプの場合は、既存のセルの属性を変える
             var cell = CellMap(pos);
             cell.CellType = type;
             MakeRelation(cell);
             return cell;
         }
+
         // 動的なセルの削除
-        public virtual void RemoveCell(AstarCell cell)
+        public override void RemoveCell(AstarCell cell)
         {
             foreach (var target in cell.Related)
             {   // taget はcellからの接続先
@@ -131,79 +130,37 @@ namespace Tsl.Math.Pathfinder
             this.logic.cells.Remove(cell);
         }
 
-        // セル間の接続情報の生成
-        public virtual void MakeRelation(AstarCell cell) { throw new System.NotImplementedException(); }
-
+        // セルのタイプ別に集計する。
         public int[] Info()
         {
             int[] counts = new int[(int)AstarCell.Type.Links + 1];
             EachCell(cell =>
             {
                 counts[(int)cell.CellType] += 1;
-                counts[(int)(int)AstarCell.Type.Links] += cell.Related.Count;
+                counts[(int)AstarCell.Type.Links] += cell.Related.Count;
             });
             return counts;
         }
 
-        public int NumOfNodes
+        // ノードの数を返す。事前にInfo関数を実行して、その結果を引数として渡す
+        public int NumOfNodes(int[] info)
         {
-            get { return this.cellMapBody.Where(c => c.CellType != AstarCell.Type.Removed && c.CellType != AstarCell.Type.Block).Count(); }
+            return info[(int)AstarCell.Type.Empty] + info[(int)AstarCell.Type.Open] + info[(int)AstarCell.Type.Close];
         }
-        public int NumOfBlocks
+        // ブロックノードの数を返す。事前にInfo関数を実行して、その結果を引数として渡す
+        public int NumOfBlocks(int[] info)
         {
-            get { return this.cellMapBody.Count(c => c.CellType == AstarCell.Type.Block); }
-        }
-        public int NumOfLinks
-        {
-            get { return this.cellMapBody.Where(c => c.CellType != AstarCell.Type.Removed && c.CellType != AstarCell.Type.Block).Select(c => c.Related.Count).Sum(); }
+            return info [(int)AstarCell.Type.Block];
         }
 
-        public int PathCount
+        // ノード間のリンク数を返す。事前にInfo関数を実行して、その結果を引数として渡す
+        public int NumOfLinks(int[] info)
         {
-            get { return this.logic == null ? 0 : this.logic.PathCount; }
+            return info[(int)AstarCell.Type.Links];
         }
 
-        // intで評価されるmapRectのグリッドセルで初期化
-        public void MapInit(Rect mapRect, float tilesize = 0.0f)
-        {
-            if (tilesize != 0.0f) this.TileSize = tilesize;
-            this.MapRect = mapRect;
-            this.cellMapBody = new AstarCell[this.GridHeight * this.GridWidth];
-            for (int iy = 0; iy < this.GridHeight; ++iy)
-            {
-                float y = mapRect.y + iy * this.TileSize;
-                for (int ix = 0; ix < this.GridWidth; ++ix)
-                {
-                    float x = mapRect.x + ix * this.TileSize;
-                    var cell = new AstarCell();
-                    cell.Position = new Vector2(x, y);
-                    cellMapBody[cellIndex(cell.Position)] = cell;
-                }
-            }
-            if (this.cellMapBody.Any(c => c == null))
-            {
-                for (int i = 0 ;i  < this.cellMapBody.Count(); ++i)
-                {
-                    if (this.cellMapBody[i] == null)
-                    {
-                        int x = i % this.GridWidth;
-                        int y = i / this.GridWidth;
-                        int idx = cellIndex(new Vector2(mapRect.x + x * this.TileSize, mapRect.y + y * this.TileSize));
-                        Debug.LogError(string.Format("cellMapBody has null: {0}  x:{1}, y:{2}, cellindex={3}", i, x, y, idx));
-                        break;
-                    }
-                }
-            }
-        }
-        // srcのマップをコピー
-        public void MapInit(AStarPathfinder2DGrid src)
-        {
-            this.TileSize = src.TileSize;
-            this.MapRect = src.MapRect;
-            this.cellMapBody = src.cellMapBody;
-        }
 
-        public void Reset(bool allReset = true)
+        public override void Reset(bool allReset = true)
         {
             foreach (var cell in this.cellMapBody)
             {
@@ -213,77 +170,5 @@ namespace Tsl.Math.Pathfinder
                 }
             }
         }
-
-        public void InsertInQueue(Vector2 start, Vector2 end, System.Action<List<Vector2>> act)
-        {
-            this.pathFindQueue.Enqueue(new PathFindQueue { start = start, end = end, onEnd = act});
-        }
-
-
-        ExecuteMode executeMode = ExecuteMode.Sync;
-
-        public void PathFind(Vector2 start,
-                             Vector2 goal,
-                             System.Action<List<Vector2>> onEnd = null,
-                             ExecuteMode mode = ExecuteMode.ASync)
-        {
-            this.startTime = System.DateTime.Now;
-            this.executeMode = mode;
-            System.Action<List<Vector2>> onFinish = r =>
-            {
-                Debug.Log(string.Format("PathFind time: {0} second", (System.DateTime.Now - this.startTime).TotalSeconds));
-                if (this.DebugHaltMode && r == null)
-                {
-                    this.DebugHalt = true;
-                }
-                else
-                {
-                    onEnd(r);
-                    RemoveCell(this.logic.startCell);
-                    RemoveCell(this.logic.goalCell);
-                }
-            };
-
-            if (mode != ExecuteMode.StepNext)
-            {   // 初回のPathFind
-                if (this.CellMap(goal).CellType == AstarCell.Type.Block)
-                {   // ゴールに到達不能
-                    Debug.LogWarning("gold is in block");
-                    onEnd(null);
-                    return;
-                }
-                else
-                {
-                    var startCell = AddCellImmediate(start, AstarCell.Type.Start);
-                    var goalCell = AddCellImmediate(goal, AstarCell.Type.Goal);
-                    this.logic.PathFind(startCell, goalCell, this.MakeRelation, onFinish, mode != ExecuteMode.Sync);
-                    return;
-                }
-            }
-            switch(mode)
-            {
-                case ExecuteMode.Sync:
-                    break;
-                case ExecuteMode.ASync:
-                    pathFindProcessCoroutine();
-                    break;
-                case ExecuteMode.StepFirst:
-                case ExecuteMode.StepNext:
-                    this.logic.pathFindProcess();
-                    break;
-                default:
-                    throw new System.InvalidOperationException();
-            }
-        }
-
-        // CoroutineでPathfindを実行する
-        private void pathFindProcessCoroutine()
-        {
-            for (int i = 0; i <= this.ProcessCoroutineFactor && !this.logic.Finished; ++i)
-            {
-                this.logic.pathFindProcess();
-            }
-        }
     }
-
 }

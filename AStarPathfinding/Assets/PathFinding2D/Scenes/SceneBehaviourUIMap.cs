@@ -44,9 +44,10 @@ public class SceneBehaviourUIMap : MonoBehaviour {
 
     private void Update()
     {
+        var info = AStarPathfinder2DOptimized.Instance.Info();
         this.MessageText.text = string.Format("{0} Nodes\n{1} Links\n{2} Paths\ndistance={3}",
-            AStarPathfinder2DOptimized.Instance.NumOfNodes,
-            AStarPathfinder2DOptimized.Instance.NumOfLinks,
+            AStarPathfinder2DOptimized.Instance.NumOfNodes(info),
+            AStarPathfinder2DOptimized.Instance.NumOfLinks(info),
             AStarPathfinder2DOptimized.Instance.PathCount,
             this.distance);
 
@@ -200,7 +201,9 @@ public class SceneBehaviourUIMap : MonoBehaviour {
             if (basicDistance != 0.0f)
             {
                 ++testCount;
-                if (Mathf.Abs(basicDistance - optimizedDistance) > 0.01f)
+                if ((AStarPathfinder2DOptimized.Instance.GridMode && Mathf.Abs(basicDistance - optimizedDistance) > 0.01f)
+                    || (!AStarPathfinder2DOptimized.Instance.GridMode 
+                        && (basicDistance/ optimizedDistance) < 0.9f || (optimizedDistance / basicDistance) < 0.9f))
                 {
                     Debug.LogWarning(string.Format("distance not equal opt:{0} as {1}", optimizedDistance, basicDistance));
                     if (AStarPathfinder2DOptimized.Instance.GridMode)
