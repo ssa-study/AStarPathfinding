@@ -49,6 +49,7 @@ namespace Tsl.Math.Pathfinder
                     }
                 }
             }
+            parent.RelationBuilt = true;
         }
     }
 }

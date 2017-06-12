@@ -100,22 +100,25 @@ namespace Tsl.Math.Pathfinder
         }
 
         // 動的なセルの追加(状態変更)
-        public AstarCell SetCellTypeImmediate(Vector2 pos, AstarCell.Type type)
+        public virtual AstarCell AddCellImmediate(Vector2 pos, AstarCell.Type type)
+        {   // グリッドタイプの場合は、既存のセルの属性を変える
+            var cell = CellMap(pos);
+            cell.CellType = type;
+            MakeRelation(cell);
+            return cell;
+        }
+        // 動的なセルの削除
+        public virtual void RemoveCell(AstarCell cell)
         {
-            if (type == AstarCell.Type.Start || type == AstarCell.Type.Goal)
-            {
-                var cell = new AstarCell();
-                cell.CellType = type;
-                cell.Position = pos;
-                return cell;
+            foreach (var target in cell.Related)
+            {   // taget はcellからの接続先
+                var found = target.cell.Related.Find(c => c.cell == cell);
+                if (found.cell == cell)
+                {
+                    target.cell.Related.Remove(found);
+                }
             }
-            else
-            {
-                var cell = CellMap(pos);
-                cell.CellType = type;
-                MakeRelation(cell);
-                return cell;
-            }
+            this.logic.cells.Remove(cell);
         }
 
         // セル間の接続情報の生成
@@ -204,12 +207,14 @@ namespace Tsl.Math.Pathfinder
             {
                 Debug.Log(string.Format("PathFind time: {0} second", (System.DateTime.Now - this.startTime).TotalSeconds));
                 onEnd(r);
+                RemoveCell(this.logic.startCell);
+                RemoveCell(this.logic.goalCell);
             };
 
             if (mode != ExecuteMode.StepNext)
-            {
-                var startCell = SetCellTypeImmediate(start, AstarCell.Type.Start);
-                var goalCell = SetCellTypeImmediate(goal, AstarCell.Type.Goal);
+            {   // 初回のPathFind
+                var startCell = AddCellImmediate(start, AstarCell.Type.Start);
+                var goalCell = AddCellImmediate(goal, AstarCell.Type.Goal);
                 this.logic.PathFind(startCell, goalCell, this.MakeRelation, onFinish, mode != ExecuteMode.Sync);
             }
             switch(mode)

@@ -38,12 +38,6 @@ namespace Tsl.Math.Pathfinder
             this.finished = false;
             this.goalCandidate.Clear();
 
-            // スタートマスの回りをスキャン
-            this.cells.Add(startCell);
-            this.cells.Add(goalCell);
-            this.MakeRelation(this.goalCell);
-            this.MakeRelation(this.startCell);
-
             ScanAround(this.startCell);
 
             if (!initOnly)
@@ -76,9 +70,6 @@ namespace Tsl.Math.Pathfinder
             {   // 解決不能
                 this.finished = true;
                 this.onGoal(null);
-                RemoveCell(this.startCell);
-                RemoveCell(this.goalCell);
-
                 this.Busy = false;
             }
             if (this.goalCandidate.Any())
@@ -94,7 +85,10 @@ namespace Tsl.Math.Pathfinder
         private void ScanAround(AstarCell parent)
         {
             // 接続情報を作成する
-            MakeRelation(parent);
+            if (!parent.RelationBuilt)
+            {
+                MakeRelation(parent);
+            }
 
             foreach (var related in parent.Related)
             { 
@@ -143,23 +137,8 @@ namespace Tsl.Math.Pathfinder
             this.onGoal(pathList);
             var links = this.cells.Sum(c => c.Related.Count);
             Debug.Log(string.Format("{0} cells {1} links", this.cells.Count, links));
-            RemoveCell(this.startCell);
-            RemoveCell(this.goalCell);
             this.Busy = false;
 
-        }
-
-        public void RemoveCell(AstarCell cell)
-        {
-            foreach(var target in cell.Related)
-            {   // taget はcellからの接続先
-                var found = target.cell.Related.Find(c => c.cell == cell);
-                if (found.cell == cell)
-                {
-                    target.cell.Related.Remove(found);
-                }
-            }
-            this.cells.Remove(cell);
         }
 
     }

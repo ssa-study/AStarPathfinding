@@ -202,8 +202,11 @@ public class SceneBehaviourUIMap : MonoBehaviour {
                 ++testCount;
                 if (Mathf.Abs(basicDistance - optimizedDistance) > 0.01f)
                 {
-                    Debug.Log(string.Format("distance not equal opt:{0} as {1}", optimizedDistance, basicDistance));
-                    break;
+                    Debug.LogWarning(string.Format("distance not equal opt:{0} as {1}", optimizedDistance, basicDistance));
+                    if (AStarPathfinder2D.Instance.GridMode)
+                    {
+                        break;
+                    }
                 }
             }
 
