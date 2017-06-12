@@ -38,7 +38,6 @@ namespace Tsl.Math.Pathfinder
         // 到達可能なノードを全ノードからレイキャストして調べる
         public void setGridRelatedSearchRaycast(AstarCell parent, bool newCell = false)
         {
-            //parent.ClearRelated();
             foreach (var cell in this.logic.cells.Where(c => c.IsValidCell()))
             {
                 if (cell == parent) continue;
@@ -55,7 +54,7 @@ namespace Tsl.Math.Pathfinder
                 float cost = 0;
                 var prevPos = parent.Position;
                 if (!this.GridMode)
-                {   // 最短距離で結ぶ場合
+                {   // 中間グリッドを飛ばして最短距離で結ぶ場合
                     RaycastCell(parent.Position, cell.Position, AstarCell.Type.Removed,
                             rcell =>
                             {
@@ -87,9 +86,10 @@ namespace Tsl.Math.Pathfinder
                 }
                 else
                 {   // グリッドモード
-                    RaycastCell(parent.Position, cell.Position, AstarCell.Type.Correct,
+                    RaycastCell(parent.Position, cell.Position, AstarCell.Type.NoIgnore,
                         rcell =>
                         {
+                            // グリッドモードではコストを計算する
                             var nowpos = rcell.Position;
                             cost += (nowpos - prevPos).magnitude;
                             prevPos = nowpos;

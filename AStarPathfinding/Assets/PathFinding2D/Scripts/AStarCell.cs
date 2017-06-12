@@ -18,7 +18,8 @@ namespace Tsl.Math.Pathfinder
             Correct,
             Removed,
             SkipPoint,
-            Links,
+            Links,    // リンク数集計用
+            NoIgnore, // 無視するタイプが無い場合
         }
 
         public struct RelatedData 
