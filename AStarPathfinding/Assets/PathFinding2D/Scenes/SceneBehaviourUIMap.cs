@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
-using AStarPathfinder2D = Tsl.Math.Pathfinder.AStarPathfinder2D;
+using AStarPathfinder2DOptimized = Tsl.Math.Pathfinder.AStarPathfinder2DOptimized;
 using AStarPathfinder2DTraditional = Tsl.Math.Pathfinder.AStarPathfinder2DTraditional;
 using AstarCell = Tsl.Math.Pathfinder.AstarCell;
 
@@ -24,7 +24,7 @@ public class SceneBehaviourUIMap : MonoBehaviour {
 
     // Use this for initialization
     void Start () {
-        AStarPathfinder2D.Instance.MapInit(this.MapRect);
+        AStarPathfinder2DOptimized.Instance.MapInit(this.MapRect);
         int w = (int)this.MapRect.width;
         int h = (int)this.MapRect.height;
         this.cellMap = new Tsl.UI.Pathfinder.Cell[w,h];
@@ -35,26 +35,26 @@ public class SceneBehaviourUIMap : MonoBehaviour {
                 var cell = Instantiate(CellPrefab.gameObject) as GameObject;
                 this.cellMap[x, y] = cell.GetComponent<Tsl.UI.Pathfinder.Cell>();
                 cell.transform.SetParent(this.MapRoot, false);
-                this.cellMap[x, y].AstarCell = AStarPathfinder2D.Instance.CellMap(new Vector2(x, y));
+                this.cellMap[x, y].AstarCell = AStarPathfinder2DOptimized.Instance.CellMap(new Vector2(x, y));
             }
 
         }
-        AStarPathfinder2DTraditional.Instance.MapInit(AStarPathfinder2D.Instance);
+        AStarPathfinder2DTraditional.Instance.MapInit(AStarPathfinder2DOptimized.Instance);
     }
 
     private void Update()
     {
         this.MessageText.text = string.Format("{0} Nodes\n{1} Links\n{2} Paths\ndistance={3}",
-            AStarPathfinder2D.Instance.NumOfNodes,
-            AStarPathfinder2D.Instance.NumOfLinks,
-            AStarPathfinder2D.Instance.PathCount,
+            AStarPathfinder2DOptimized.Instance.NumOfNodes,
+            AStarPathfinder2DOptimized.Instance.NumOfLinks,
+            AStarPathfinder2DOptimized.Instance.PathCount,
             this.distance);
 
     }
 
     public void Reset()
     {
-        AStarPathfinder2D.Instance.Reset();
+        AStarPathfinder2DOptimized.Instance.Reset();
         AStarPathfinder2DTraditional.Instance.Reset();
         this.goled = false;
     }
@@ -70,9 +70,9 @@ public class SceneBehaviourUIMap : MonoBehaviour {
         {
             if (this.usingOptimize)
             {
-                AStarPathfinder2D.Instance.PathFind(this.StartPoint, this.GoalPoint, r =>
+                AStarPathfinder2DOptimized.Instance.PathFind(this.StartPoint, this.GoalPoint, r =>
                 {
-                    r = AStarPathfinder2D.Instance.FillGrid(r);
+                    r = AStarPathfinder2DOptimized.Instance.FillGrid(r);
                     this.distance = DrawLine(r);
                     this.goled = true;
                 });
@@ -106,7 +106,7 @@ public class SceneBehaviourUIMap : MonoBehaviour {
         if (opt)
         {
             this.usingOptimize = true;
-            AStarPathfinder2D.Instance.MapMake();
+            AStarPathfinder2DOptimized.Instance.MapMake();
         }
         else
         {
@@ -127,7 +127,7 @@ public class SceneBehaviourUIMap : MonoBehaviour {
             while(l-- != 0)
             {
                 if (!range.Contains(pos)) break;
-                AStarPathfinder2D.Instance.CellMap(pos).CellType = AstarCell.Type.Block;
+                AStarPathfinder2DOptimized.Instance.CellMap(pos).CellType = AstarCell.Type.Block;
                 pos.x += dir ? this.TileSize : 0.0f;
                 pos.y += dir ? 0.0f : this.TileSize;
             }
@@ -136,7 +136,7 @@ public class SceneBehaviourUIMap : MonoBehaviour {
     
     public void OnClickClear()
     {
-        AStarPathfinder2D.Instance.EachCell(cell => cell.CellType = AstarCell.Type.Removed);
+        AStarPathfinder2DOptimized.Instance.EachCell(cell => cell.CellType = AstarCell.Type.Removed);
     }
 
     public void OnClickAutoTest()
@@ -162,12 +162,12 @@ public class SceneBehaviourUIMap : MonoBehaviour {
             {
                 this.StartPoint = new Vector2(Random.Range(this.MapRect.x, this.MapRect.width / 3 - this.TileSize),
                                               Random.Range(this.MapRect.y, this.MapRect.height / 3 - this.TileSize));
-            } while(AStarPathfinder2D.Instance.CellMap(this.StartPoint).CellType == AstarCell.Type.Block);
+            } while(AStarPathfinder2DOptimized.Instance.CellMap(this.StartPoint).CellType == AstarCell.Type.Block);
             do
             {
                 this.GoalPoint = new Vector2(Random.Range(this.MapRect.x, this.MapRect.width / 3) + this.MapRect.width * 2 / 3 - this.TileSize,
                                          Random.Range(this.MapRect.y, this.MapRect.width / 3) + this.MapRect.width * 2 / 3 - this.TileSize);
-            } while(AStarPathfinder2D.Instance.CellMap(this.GoalPoint).CellType == AstarCell.Type.Block);
+            } while(AStarPathfinder2DOptimized.Instance.CellMap(this.GoalPoint).CellType == AstarCell.Type.Block);
             this.goled = false;
             var now = System.DateTime.Now;
             float basicDistance = 0.0f;
@@ -185,11 +185,11 @@ public class SceneBehaviourUIMap : MonoBehaviour {
 
             Reset();
             this.goled = false;
-            AStarPathfinder2D.Instance.MapMake();
+            AStarPathfinder2DOptimized.Instance.MapMake();
             now = System.DateTime.Now;
-            AStarPathfinder2D.Instance.PathFind(this.StartPoint, this.GoalPoint, r => 
+            AStarPathfinder2DOptimized.Instance.PathFind(this.StartPoint, this.GoalPoint, r => 
             {
-                r = AStarPathfinder2D.Instance.FillGrid(r);
+                r = AStarPathfinder2DOptimized.Instance.FillGrid(r);
                 optimizedTime += (System.DateTime.Now - now).TotalSeconds;
                 optimizedDistance = DrawLine(r);
                 this.goled = true;
@@ -203,7 +203,7 @@ public class SceneBehaviourUIMap : MonoBehaviour {
                 if (Mathf.Abs(basicDistance - optimizedDistance) > 0.01f)
                 {
                     Debug.LogWarning(string.Format("distance not equal opt:{0} as {1}", optimizedDistance, basicDistance));
-                    if (AStarPathfinder2D.Instance.GridMode)
+                    if (AStarPathfinder2DOptimized.Instance.GridMode)
                     {
                         break;
                     }

@@ -8,12 +8,19 @@ namespace Tsl.Math.Pathfinder
     // GridベースのASterセルを、リンク形式で結合するために最適化を行う
     // GridMode = trueで、GridベースのA* Pathfindingと互換性を持たせる
     // GridMode = falseの場合は、ノード間を最短ルートで結ぶ
-    public abstract class AStarPathfinder2DOptimized : AStarPathfinder2DGrid
+    public class AStarPathfinder2DOptimized : AStarPathfinder2DGrid
     {
         public bool GridMode = true; // 最適化時に、結果をグリッドのリストに変換する
 
         private AstarCell.Type[,] cellType;
 
+
+        public static AStarPathfinder2DOptimized Instance;
+
+        void Awake()
+        {
+            AStarPathfinder2DOptimized.Instance = this;
+        }
 
         // 接続情報を生成する
         public override void MakeRelation(AstarCell cell)
@@ -393,6 +400,29 @@ namespace Tsl.Math.Pathfinder
             int iy = (int)((cell.Position.y - this.MapRect.y) / this.TileSize + 0.5f);
             this.cellType[ix, iy] = cell.CellType;
         }
+
+        // linesで示される経路をグリッドベースに変換する
+        public List<Vector2> FillGrid(List<Vector2> lines)
+        {
+            if (lines == null) return null;
+            List<Vector2> result = new List<Vector2>();
+            for (int i = 0; i < lines.Count - 1; ++i)
+            {
+                if (i == 0) result.Add(lines[i]);
+                RaycastCell(lines[i], lines[i + 1], AstarCell.Type.Block, cell =>
+                {
+                    if (cell != null)
+                    {
+                        if (cell.CellType == AstarCell.Type.Removed) cell.CellType = AstarCell.Type.SkipPoint;
+                        result.Add(cell.Position);
+                    }
+                    return false;
+                });
+            }
+            return result;
+        }
+
+
     }
 }
 
