@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 using AStarPathfinder2D = Tsl.Math.Pathfinder.AStarPathfinder2D;
-using AStarPathfinder2DBasic = Tsl.Math.Pathfinder.AStarPathfinder2DBasic;
+using AStarPathfinder2DTraditional = Tsl.Math.Pathfinder.AStarPathfinder2DTraditional;
 using AstarCell = Tsl.Math.Pathfinder.AstarCell;
 
 public class SceneBehaviourUIMap : MonoBehaviour {
@@ -39,7 +39,7 @@ public class SceneBehaviourUIMap : MonoBehaviour {
             }
 
         }
-        AStarPathfinder2DBasic.Instance.MapInit(AStarPathfinder2D.Instance);
+        AStarPathfinder2DTraditional.Instance.MapInit(AStarPathfinder2D.Instance);
     }
 
     private void Update()
@@ -55,7 +55,7 @@ public class SceneBehaviourUIMap : MonoBehaviour {
     public void Reset()
     {
         AStarPathfinder2D.Instance.Reset();
-        AStarPathfinder2DBasic.Instance.Reset();
+        AStarPathfinder2DTraditional.Instance.Reset();
         this.goled = false;
     }
     bool usingOptimize = false;
@@ -79,7 +79,7 @@ public class SceneBehaviourUIMap : MonoBehaviour {
             }
             else
             {
-                AStarPathfinder2DBasic.Instance.PathFind(this.StartPoint, this.GoalPoint, r =>
+                AStarPathfinder2DTraditional.Instance.PathFind(this.StartPoint, this.GoalPoint, r =>
                 {
                     this.distance = DrawLine(r);
                     this.goled = true;
@@ -111,7 +111,7 @@ public class SceneBehaviourUIMap : MonoBehaviour {
         else
         {
             this.usingOptimize = false;
-            AStarPathfinder2DBasic.Instance.MapMake();
+            AStarPathfinder2DTraditional.Instance.MapMake();
         }
     }
 
@@ -156,7 +156,7 @@ public class SceneBehaviourUIMap : MonoBehaviour {
             OnClickRandomMake();
 
             Reset();
-            AStarPathfinder2DBasic.Instance.MapMake();
+            AStarPathfinder2DTraditional.Instance.MapMake();
 
             do
             {
@@ -172,7 +172,7 @@ public class SceneBehaviourUIMap : MonoBehaviour {
             var now = System.DateTime.Now;
             float basicDistance = 0.0f;
             float optimizedDistance = 0.0f;
-            AStarPathfinder2DBasic.Instance.PathFind(this.StartPoint, this.GoalPoint, r => 
+            AStarPathfinder2DTraditional.Instance.PathFind(this.StartPoint, this.GoalPoint, r => 
             {
                 basicTime += (System.DateTime.Now - now).TotalSeconds;
                 basicDistance = DrawLine(r);

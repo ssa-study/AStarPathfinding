@@ -311,11 +311,7 @@ namespace Tsl.Math.Pathfinder
             removeList.Clear();
 
             if (!this.GridMode)
-            {
-                // 角にある3点を1点にする
-                // □ □ □      □ □ □ 
-                // □ * *   => □ □ *
-                // ? ■ *      ? ■ *
+            {   // グリッドモードでない場合は、さらに最適化を進める
                 foreach (var cell in emptyCells.Where(c => c.CellType == AstarCell.Type.Empty))
                 {
                     var pos = cell.Position;
@@ -339,12 +335,37 @@ namespace Tsl.Math.Pathfinder
                                 case 7: return ar[2 - x, y];
                             }
                         };
+                        // 角にある3点を1点にする
+                        // □ □ □      □ □ □ 
+                        // □ * *   => □ □ *
+                        // ? ■ ?      ? ■ *
                         if (m(0, 0) == AstarCell.Type.Removed && m(1, 0) == AstarCell.Type.Removed && m(2, 0) == AstarCell.Type.Removed
                          && m(0, 1) == AstarCell.Type.Removed && m(1, 1) == AstarCell.Type.Empty && m(2, 1) == AstarCell.Type.Empty
-                         /*&& m(0,2) == AstarCell.Type.Block*/ && m(1, 2) == AstarCell.Type.Block && m(2, 2) == AstarCell.Type.Empty)
+                         /*&& m(0,2) == AstarCell.Type.Block*/ && m(1, 2) == AstarCell.Type.Block /*&& m(2, 2) == AstarCell.Type.Empty*/)
                         {
                             removeList.Add(cell);
                         }
+                        // 冗長な斜めの線を細くする
+                        //  □  * !□      □ * * 
+                        //  *  *  ■   => * □ ■
+                        // !□  ■  ■      * ■ ■
+                        if (angle < 4 &&
+                            m(0, 0) == AstarCell.Type.Removed && m(1, 0) == AstarCell.Type.Empty && m(2, 0) != AstarCell.Type.Removed
+                         && m(0, 1) == AstarCell.Type.Empty && m(1, 1) == AstarCell.Type.Empty && m(2, 1) == AstarCell.Type.Block
+                         && m(0, 2) != AstarCell.Type.Removed && m(1, 2) == AstarCell.Type.Block && m(2, 2) == AstarCell.Type.Block)
+                        {
+                            removeList.Add(cell);
+                        }
+                        // 3連続の中を抜く
+                        //  ?  *  ?      ?  *  ?
+                        //  ?  *  ?   => ?  □  ?
+                        //  ?  *  ?      ?  *  ?
+                        if ((angle == 0 || angle == 4) &&
+                            m(1,0) == AstarCell.Type.Empty && m(1,1) == AstarCell.Type.Empty && m( 1,2) == AstarCell.Type.Empty)
+                        {
+                            removeList.Add(cell);
+                        }
+
                     };
                 }
 
