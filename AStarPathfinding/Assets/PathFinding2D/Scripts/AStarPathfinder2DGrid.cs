@@ -24,8 +24,8 @@ namespace Tsl.Math.Pathfinder
             StepNext, // 1ステップずつ
         }
 
-        private int GridWidth { get { return (int)(this.MapRect.width / this.TileSize + 0.000001f); } }
-        private int GridHeight { get { return (int)(this.MapRect.height / this.TileSize + 0.000001f); } }
+        private int GridWidth { get { return (int)(this.MapRect.width / this.TileSize + 0.5f); } }
+        private int GridHeight { get { return (int)(this.MapRect.height / this.TileSize + 0.5f); } }
 
         class PathFindQueue
         { 
