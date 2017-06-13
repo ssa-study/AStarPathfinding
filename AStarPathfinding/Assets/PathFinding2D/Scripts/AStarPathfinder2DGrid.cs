@@ -162,6 +162,9 @@ namespace Tsl.Math.Pathfinder
 
         public override void Reset(bool allReset = true)
         {
+            if (this.logic.startCell != null) RemoveCell(this.logic.startCell);
+            if (this.logic.goalCell != null) RemoveCell(this.logic.goalCell);
+
             foreach (var cell in this.cellMapBody)
             {
                 if (cell.CellType != AstarCell.Type.Block)

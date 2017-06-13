@@ -11,7 +11,8 @@ namespace Tsl.Math.Pathfinder
     public class AStarPathfinder2DOptimized : AStarPathfinder2DGrid
     {
         public bool GridMode = true; // 最適化時に、結果をグリッドのリストに変換する
-
+        public bool PreCalculateRelation = true; // 接続情報を事前に計算する
+         
         private AstarCell.Type[,] cellType;
 
 
@@ -398,8 +399,19 @@ namespace Tsl.Math.Pathfinder
                 setCellType(cell);
             }
 
-            // 残ったセルに対して、接続情報をセットする
+            // 有効なセルの登録
             this.logic.cells = this.cellMapBody.Where(c => c.CellType == AstarCell.Type.Empty).Select(c => c as AstarCell).ToList();
+
+            // 残ったセルに対して、接続情報をセットする
+            if (this.PreCalculateRelation)
+            {
+                foreach (var cell in this.logic.cells)
+                {
+                    setGridRelatedSearchRaycast(cell, true);
+                    cell.RelationBuilt = true;
+                }
+            }
+
             this.MapReady = true;
         }
 
@@ -438,7 +450,6 @@ namespace Tsl.Math.Pathfinder
             }
             return result;
         }
-
 
     }
 }

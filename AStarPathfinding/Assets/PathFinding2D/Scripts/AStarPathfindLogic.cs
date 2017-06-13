@@ -135,8 +135,8 @@ namespace Tsl.Math.Pathfinder
             pathList.Reverse();
             this.finished = true;
             this.onGoal(pathList);
-            var links = this.cells.Sum(c => c.Related.Count);
-            Debug.Log(string.Format("{0} cells {1} links", this.cells.Count, links));
+            //var links = this.cells.Sum(c => c.Related.Count);
+            //Debug.Log(string.Format("{0} cells {1} links", this.cells.Count, links));
             this.Busy = false;
 
         }

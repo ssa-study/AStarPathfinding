@@ -33,7 +33,6 @@ namespace Tsl.Math.Pathfinder
         }
 
         private Queue<PathFindQueue> pathFindQueue = new Queue<PathFindQueue>();
-        private System.DateTime startTime;
         private ExecuteMode executeMode = ExecuteMode.Sync;
 
 
@@ -58,11 +57,9 @@ namespace Tsl.Math.Pathfinder
                              System.Action<List<Vector2>> onEnd = null,
                              ExecuteMode mode = ExecuteMode.ASync)
         {
-            this.startTime = System.DateTime.Now;
             this.executeMode = mode;
             System.Action<List<Vector2>> onFinish = r =>
             {
-                Debug.Log(string.Format("PathFind time: {0} second", (System.DateTime.Now - this.startTime).TotalSeconds));
                 if (this.DebugHaltMode && r == null)
                 {
                     this.DebugHalt = true;
@@ -70,8 +67,6 @@ namespace Tsl.Math.Pathfinder
                 else
                 {
                     onEnd(r);
-                    RemoveCell(this.logic.startCell);
-                    RemoveCell(this.logic.goalCell);
                 }
             };
 
