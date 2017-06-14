@@ -382,8 +382,18 @@ namespace Tsl.Math.Pathfinder
                         {
                             removeList.Add(cell);
                         }
-
-                    };
+                        // 斜め3連続の中を抜く
+                        // !□  ?  *     □  □  *
+                        //  □  *  □  => □  □  □
+                        //  *  ? !□     *  □  □
+                        if ((angle == 0 || angle == 7) &&
+                            m(0,0) != AstarCell.Type.Empty /*&& m(1,0) == AstarCell.Type.Removed */ && m(2,0) == AstarCell.Type.Empty
+                        /*&& m(0,1) == AstarCell.Type.Removed*/ && m(1,1) == AstarCell.Type.Empty /*&& m(2,1) == AstarCell.Type.Removed*/
+                        && m(0,2) == AstarCell.Type.Empty /*&& m(1,2) == AstarCell.Type.Removed */ && m(2,2) != AstarCell.Type.Empty)
+                        {
+                            removeList.Add(cell);
+                        }
+                    }
                 }
 
                 foreach (var cell in removeList)
