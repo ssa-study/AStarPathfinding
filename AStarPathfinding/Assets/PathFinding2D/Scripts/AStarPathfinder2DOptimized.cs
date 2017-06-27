@@ -12,7 +12,7 @@ namespace Tsl.Math.Pathfinder
     {
         public bool GridMode = true; // 最適化時に、結果をグリッドのリストに変換する
         public bool PreCalculateRelation = true; // 接続情報を事前に計算する
-         
+        public int OptimizeLevel = 1; 
         private AstarCell.Type[,] cellType;
 
         public static AStarPathfinder2DOptimized Instance;
@@ -278,52 +278,59 @@ namespace Tsl.Math.Pathfinder
                     }
                 }
             };
-            // 角以外のセルを削除
             List<AstarCell> removeList = new List<AstarCell>();
-            foreach (var cell in emptyCells)
+            if (this.OptimizeLevel > 1)
             {
-                var pos = cell.Position;
-                AstarCell.Type[,] ar = new AstarCell.Type[3, 3]; // check around
-                set3x3(pos, ar);
-                // 縦横3連ブロックチェック
-                for (int inv = 0; inv < 2; ++inv)
+                // 角以外のセルを削除
+                foreach (var cell in emptyCells)
                 {
-                    // x,ｙを反転させる
-                    System.Func<int, int, AstarCell.Type> m = (x, y) => { return inv == 0 ? ar[x, y] : ar[y, x]; };
-
-                    // 両サイド
-                    for (int s = 0; s <= 2; s += 2)
+                    var pos = cell.Position;
+                    AstarCell.Type[,] ar = new AstarCell.Type[3, 3]; // check around
+                    set3x3(pos, ar);
+                    // 縦横3連ブロックチェック
+                    for (int inv = 0; inv < 2; ++inv)
                     {
-                        int u = 2 - s; // 逆サイド
-                        if (m(s, 0) == m(s, 1) && m(s, 1) == m(s, 2) && m(s, 0) == AstarCell.Type.Block)
-                        {   // サイドがすべてブロック
-                            if (m(1, 0) == AstarCell.Type.Empty && m(1, 2) == AstarCell.Type.Empty)
-                            {   // 上下3連でEmpty
-                                if (m(u, 0) != AstarCell.Type.Block
+                        // x,ｙを反転させる
+                        System.Func<int, int, AstarCell.Type> m = (x, y) =>
+                        {
+                            return inv == 0 ? ar[x, y] : ar[y, x];
+                        };
+
+                        // 両サイド
+                        for (int s = 0; s <= 2; s += 2)
+                        {
+                            int u = 2 - s; // 逆サイド
+                            if (m(s, 0) == m(s, 1) && m(s, 1) == m(s, 2) && m(s, 0) == AstarCell.Type.Block)
+                            {   // サイドがすべてブロック
+                                if (m(1, 0) == AstarCell.Type.Empty && m(1, 2) == AstarCell.Type.Empty)
+                                {   // 上下3連でEmpty
+                                    if (m(u, 0) != AstarCell.Type.Block
                                     && m(u, 1) != AstarCell.Type.Block
                                     && m(u, 2) != AstarCell.Type.Block)
-                                {
-                                    removeList.Add(cell);
+                                    {
+                                        removeList.Add(cell);
+                                    }
                                 }
-                            }
-                            if (m(1, 0) == AstarCell.Type.Empty || m(1, 2) == AstarCell.Type.Empty)
-                            {   // 凹角の判断
-                                if ((m(1, 2) == AstarCell.Type.Block && m(u, 2) == AstarCell.Type.Block && m(u, 0) != AstarCell.Type.Block)
-                                || (m(1, 0) == AstarCell.Type.Block && m(u, 0) == AstarCell.Type.Block && m(u, 2) != AstarCell.Type.Block))
-                                {
-                                    removeList.Add(cell);
+                                if (m(1, 0) == AstarCell.Type.Empty || m(1, 2) == AstarCell.Type.Empty)
+                                {   // 凹角の判断
+                                    if ((m(1, 2) == AstarCell.Type.Block && m(u, 2) == AstarCell.Type.Block && m(u, 0) != AstarCell.Type.Block)
+                                    || (m(1, 0) == AstarCell.Type.Block && m(u, 0) == AstarCell.Type.Block && m(u, 2) != AstarCell.Type.Block))
+                                    {
+                                        removeList.Add(cell);
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-            foreach (var cell in removeList)
-            {
-                cell.CellType = AstarCell.Type.Removed;
-            }
-            removeList.Clear();
+                foreach (var cell in removeList)
+                {
+                    cell.CellType = AstarCell.Type.Removed;
+                }
 
+                removeList.Clear();
+            }
+            if (this.OptimizeLevel > 2)
             if (!this.GridMode)
             {   // グリッドモードでない場合は、さらに最適化を進める
                 foreach (var cell in emptyCells.Where(c => c.CellType == AstarCell.Type.Empty))
