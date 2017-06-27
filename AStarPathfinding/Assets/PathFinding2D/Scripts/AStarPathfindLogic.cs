@@ -54,12 +54,12 @@ namespace Tsl.Math.Pathfinder
                 throw new System.InvalidOperationException();
             }
             var cells = this.cells.Where(c => c.CellType == AstarCell.Type.Open)
-                        .OrderBy(c => c.Score)
-                        .ThenBy(c => c.Cost);
+                        ; //.OrderBy(c => c.Score).ThenBy(c => c.Cost);
 
             if (cells.Any())
             {
-                var score = cells.ElementAt(0).Score;
+                var score = cells.Min(c => c.Score);
+                // var score = cells.ElementAt(0).Score;
                 foreach (var cell in cells.Where(c => Mathf.Abs(c.Score - score) < 0.1f))
                 {
                     ScanAround(cell);

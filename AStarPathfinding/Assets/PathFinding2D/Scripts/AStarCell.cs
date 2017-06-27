@@ -55,7 +55,6 @@ namespace Tsl.Math.Pathfinder
             this.Cost = 0.0f;
             this.Hint = 0.0f;
             this.Parent = null;
-            this.RelationBuilt = false;
         }
 
         public void ClearRelated()

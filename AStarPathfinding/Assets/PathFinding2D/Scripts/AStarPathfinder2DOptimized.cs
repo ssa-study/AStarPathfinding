@@ -15,7 +15,6 @@ namespace Tsl.Math.Pathfinder
          
         private AstarCell.Type[,] cellType;
 
-
         public static AStarPathfinder2DOptimized Instance;
 
         void Awake()
