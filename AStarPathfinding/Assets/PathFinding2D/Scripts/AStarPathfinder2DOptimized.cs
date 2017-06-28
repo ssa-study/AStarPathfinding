@@ -12,7 +12,7 @@ namespace Tsl.Math.Pathfinder
     {
         public bool GridMode = true; // 最適化時に、結果をグリッドのリストに変換する
         public bool PreCalculateRelation = true; // 接続情報を事前に計算する
-        public int OptimizeLevel = 1; 
+        public int OptimizeLevel = 99; 
         private AstarCell.Type[,] cellType;
 
         public static AStarPathfinder2DOptimized Instance;
@@ -311,12 +311,16 @@ namespace Tsl.Math.Pathfinder
                                         removeList.Add(cell);
                                     }
                                 }
-                                if (m(1, 0) == AstarCell.Type.Empty || m(1, 2) == AstarCell.Type.Empty)
-                                {   // 凹角の判断
-                                    if ((m(1, 2) == AstarCell.Type.Block && m(u, 2) == AstarCell.Type.Block && m(u, 0) != AstarCell.Type.Block)
-                                    || (m(1, 0) == AstarCell.Type.Block && m(u, 0) == AstarCell.Type.Block && m(u, 2) != AstarCell.Type.Block))
-                                    {
-                                        removeList.Add(cell);
+                                if (this.OptimizeLevel > 2)
+                                {
+
+                                    if (m(1, 0) == AstarCell.Type.Empty || m(1, 2) == AstarCell.Type.Empty)
+                                    {   // 凹角の判断
+                                        if ((m(1, 2) == AstarCell.Type.Block && m(u, 2) == AstarCell.Type.Block && m(u, 0) != AstarCell.Type.Block)
+                                        || (m(1, 0) == AstarCell.Type.Block && m(u, 0) == AstarCell.Type.Block && m(u, 2) != AstarCell.Type.Block))
+                                        {
+                                            removeList.Add(cell);
+                                        }
                                     }
                                 }
                             }
@@ -330,7 +334,7 @@ namespace Tsl.Math.Pathfinder
 
                 removeList.Clear();
             }
-            if (this.OptimizeLevel > 2)
+            if (this.OptimizeLevel > 3)
             if (!this.GridMode)
             {   // グリッドモードでない場合は、さらに最適化を進める
                 foreach (var cell in emptyCells.Where(c => c.CellType == AstarCell.Type.Empty))
@@ -370,7 +374,7 @@ namespace Tsl.Math.Pathfinder
                         //  □  * !□      □ * * 
                         //  *  *  ■   => * □ ■
                         // !□  ■  ■      * ■ ■
-                        if (angle < 4 &&
+                        if (this.OptimizeLevel > 4 && angle < 4 &&
                             m(0, 0) == AstarCell.Type.Removed && m(1, 0) == AstarCell.Type.Empty && m(2, 0) != AstarCell.Type.Removed
                          && m(0, 1) == AstarCell.Type.Empty && m(1, 1) == AstarCell.Type.Empty && m(2, 1) == AstarCell.Type.Block
                          && m(0, 2) != AstarCell.Type.Removed && m(1, 2) == AstarCell.Type.Block && m(2, 2) == AstarCell.Type.Block)
@@ -381,7 +385,7 @@ namespace Tsl.Math.Pathfinder
                         //  ?  *  ?      ?  *  ?
                         // !*  *  !*  => ?  □  ?
                         //  ?  *  ?      ?  *  ?
-                        if ((angle == 0 || angle == 4) &&
+                        if (this.OptimizeLevel > 5 && (angle == 0 || angle == 4) &&
                             m(1,0) == AstarCell.Type.Empty && m(1,1) == AstarCell.Type.Empty && m( 1,2) == AstarCell.Type.Empty
                           && (m(0,1) != AstarCell.Type.Empty && m(2,1) != AstarCell.Type.Empty)
                             )
@@ -392,7 +396,7 @@ namespace Tsl.Math.Pathfinder
                         // !□  ?  *     □  □  *
                         //  □  *  □  => □  □  □
                         //  *  ? !□     *  □  □
-                        if ((angle == 0 || angle == 7) &&
+                        if (this.OptimizeLevel > 6 && (angle == 0 || angle == 7) &&
                             m(0,0) != AstarCell.Type.Empty /*&& m(1,0) == AstarCell.Type.Removed */ && m(2,0) == AstarCell.Type.Empty
                         /*&& m(0,1) == AstarCell.Type.Removed*/ && m(1,1) == AstarCell.Type.Empty /*&& m(2,1) == AstarCell.Type.Removed*/
                         && m(0,2) == AstarCell.Type.Empty /*&& m(1,2) == AstarCell.Type.Removed */ && m(2,2) != AstarCell.Type.Empty)
