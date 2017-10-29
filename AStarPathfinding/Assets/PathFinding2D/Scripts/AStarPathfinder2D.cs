@@ -20,7 +20,6 @@ namespace Tsl.Math.Pathfinder
         public bool DebugHaltMode = false; // DebugHalt == trueで一時停止する
         public bool DebugHalt = false; // 一時停止（デバッグ用)
 
-        protected Rect MapRect = new Rect(0, 0, 16, 16);
         protected List<Vector2> pathList; // 結果を一時的に保存する
         protected AStarPathfindLogic logic = new AStarPathfindLogic();
 

@@ -122,7 +122,7 @@ public class SceneBehaviour3DMap : MonoBehaviour {
 
     private void makeBlocks()
     {
-        var objectRoot = this.MapRoot.FindChild("object");
+        var objectRoot = this.MapRoot.Find("object");
         for (int n = 0; n < objectRoot.childCount; ++n)
         {
             var child = objectRoot.GetChild(n);
@@ -138,7 +138,7 @@ public class SceneBehaviour3DMap : MonoBehaviour {
             for (int n = 0; n < block.Count; ++n)
             {
                 var ins = Instantiate(this.BlockPrefab);
-                ins.transform.SetParent(this.MapRoot.FindChild("object"), false);
+                ins.transform.SetParent(this.MapRoot.Find("object"), false);
                 ins.transform.position = randomPosition();
                 ins.transform.localScale = block.BlockSize;
             }

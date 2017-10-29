@@ -1,80 +1,71 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 
+
 namespace Tsl.Math.Pathfinder
 {
-    // 2DグリッドタイプでのAStar Pathfindingのベースクラス
-    public abstract class AStarPathfinder2DGrid : AStarPathfinder2D
+    // HexタイプでのAStar Pathfindingのベースクラス
+    //    A B C D E F G H
+    //   / \ / \ / \ / \
+    // 0| A0| C0| E0| G0|
+    //   \ / \ / \ / \ / \
+    // 1  |B1 | D1| F1| H1|
+    //   / \ / \ / \ / \ /
+    // 2| A2| C2| E2| G2|
+    //   \ / \ / \ / \ / \
+    // 3  | B3| D3| F3| H3|
+
+    public class AStarPathfinder2DHex : AStarPathfinder2D
     {
-        public float TileSize = 1.0f;
 
-        protected AstarCell[] cellMapBody;
-        protected int GridWidth = 1;
-        protected int GridHeight = 1;
-        protected Rect MapRect = new Rect(0, 0, 16, 16);
+        protected AstarCell[,] cellMapBody;
+        protected int GridColumns = 1;
+        protected int GridRows = 1;
+        float sin60 = Mathf.Sin(60.0f * 3.141592f / 180.0f);
+        float cos60 = Mathf.Cos(60.0f * 3.141592f / 180.0f);
 
+        public override void MakeRelation(AstarCell cell)
+        {
+
+        }
 
         // intで評価されるmapRectのグリッドセルで初期化
-        public void MapInit(Rect mapRect, float tilesize = 0.0f)
+        public void MapInit(int columns, int rows)
         {
-            if (tilesize != 0.0f) this.TileSize = tilesize;
-            this.MapRect = mapRect;
 
             // グリッドのサイズを計算しておく
-            this.GridWidth  = (int)(this.MapRect.width / this.TileSize + 0.5f);
-            this.GridHeight = (int)(this.MapRect.height / this.TileSize + 0.5f);
+            this.GridColumns = columns;
+            this.GridRows = rows;
 
             // グリッドを埋め尽くすセルの配列
-            this.cellMapBody = new AstarCell[this.GridHeight * this.GridWidth];
+            this.cellMapBody = new AstarCell[(this.GridColumns + 1)/2, this.GridRows];
 
             // グリッドをセルの実体で埋め尽くす
-            for (int iy = 0; iy < this.GridHeight; ++iy)
+            for (int iy = 0; iy < this.GridRows; ++iy)
             {
-                float y = mapRect.y + iy * this.TileSize;
-                for (int ix = 0; ix < this.GridWidth; ++ix)
+                for (int ix = 0; ix < (this.GridColumns+1)/2; ++ix)
                 {
-                    float x = mapRect.x + ix * this.TileSize;
                     var cell = new AstarCell();
+                    float x = ix + ((iy & 1) == 0 ? 0.0f : cos60);
+                    float y = iy * sin60;
                     cell.Position = new Vector2(x, y);
-                    cellMapBody[cellIndex(cell.Position)] = cell;
+                    cellMapBody[ix, iy] = cell;
                 }
             }
         }
 
         // srcのマップをコピー cellMapBodyを共有するときに使用する
-        public void MapInit(AStarPathfinder2DGrid src)
+        public void MapInit(AStarPathfinder2DHex src)
         {
-            this.TileSize = src.TileSize;
-            this.MapRect = src.MapRect;
             this.cellMapBody = src.cellMapBody;
-            this.GridHeight = src.GridHeight;
-            this.GridWidth = src.GridWidth;
+            this.GridColumns = src.GridColumns;
+            this.GridRows = src.GridRows;
         }
 
 
-        // positionから該当するセルのインデックスを取得する。
-        // 見つからない場合は-1
-        protected int cellIndex(Vector2 p)
-        {
-            int ix = (int)((p.x - this.MapRect.x) / this.TileSize + 0.5f);
-            int iy = (int)((p.y - this.MapRect.y) / this.TileSize + 0.5f);
-            if (p.x < this.MapRect.x || p.y < this.MapRect.y) return -1;
-            if (ix < 0 || ix >= this.GridWidth || iy < 0 || iy >= this.GridHeight) return -1;
-            return iy * this.GridWidth + ix;
-        }
 
-        public AstarCell CellMap(Vector2 p)
-        {
-            int index = cellIndex(p);
-            if (index < 0 || index >= cellMapBody.Count())
-            {
-                Debug.LogError(string.Format("Invalid position: ({0},{1})", p.x, p.y));
-                return null;
-            }
-            return cellMapBody[index];
-        }
 
         public void EachCell(System.Action<AstarCell> act)
         {
@@ -91,27 +82,20 @@ namespace Tsl.Math.Pathfinder
             }
         }
 
-        public AstarCell.Type CellType(Vector2 p)
+        private AstarCell FindCell(Vector2 pos)
         {
-            int index = cellIndex(p);
-            if (index < 0 || index >= cellMapBody.Count()) return AstarCell.Type.Block;
-            return cellMapBody[index].CellType;
+            int y = (int)(pos.y / this.sin60 + 0.5f);
+            int odd = (y & 1) == 0 ? 0 : 1;
+            int x = (int)(pos.x - (odd * cos60));
+            if (y < 0 || y >= this.GridRows || x < 0 || x > (this.GridColumns + 1) / 2) return null;
+            return this.cellMapBody[x, y];
         }
-        public AstarCell.Type CellType(int x, int y)
-        {
-            if (x < 0 || y < 0 || x >=this.GridWidth || y >= this.GridHeight) return AstarCell.Type.Block; 
-            return cellMapBody[y * this.GridWidth + x].CellType;
-        }
-        public AstarCell Cell(int x, int y)
-        {
-            if (x < 0 || y < 0 || x >=this.GridWidth || y >= this.GridHeight) return null; 
-            return cellMapBody[y * this.GridWidth + x];
-        }
+
 
         // 動的なセルの追加(状態変更)
         public override AstarCell AddCellImmediate(Vector2 pos, AstarCell.Type type)
         {   // グリッドタイプの場合は、既存のセルの属性を変える
-            var cell = CellMap(pos);
+            var cell = FindCell(pos);
             cell.CellType = type;
             MakeRelation(cell);
             return cell;
@@ -151,7 +135,7 @@ namespace Tsl.Math.Pathfinder
         // ブロックノードの数を返す。事前にInfo関数を実行して、その結果を引数として渡す
         public int NumOfBlocks(int[] info)
         {
-            return info [(int)AstarCell.Type.Block];
+            return info[(int)AstarCell.Type.Block];
         }
 
         // ノード間のリンク数を返す。事前にInfo関数を実行して、その結果を引数として渡す
