@@ -12,7 +12,7 @@ public class SceneBehaviourUIHexMap : MonoBehaviour {
     public Rect MapRect = new Rect(0,0,16,16);
     public float TileSize = 1.0f;
     public Vector2 StartPoint = new Vector2(0, 0);
-    public Vector2 GoalPoint = new Vector2(15, 15);
+    public Vector2 GoalPoint;
     public UnityEngine.UI.Text MessageText;
     public UnityEngine.UI.Text TestText;
 
@@ -27,6 +27,9 @@ public class SceneBehaviourUIHexMap : MonoBehaviour {
         int w = (int)this.MapRect.width;
         int h = (int)this.MapRect.height;
         this.cellMap = new Tsl.UI.Pathfinder.Cell[w,h];
+        float scale = 300.0f / 16.0f;
+        float xofs = 20.0f -160.0f;
+        float yofs = -20.0f + 160.0f;
         for (int y = 0; y < w; ++y)
         {
             for (int x = 0; x < h; ++x)
@@ -34,10 +37,21 @@ public class SceneBehaviourUIHexMap : MonoBehaviour {
                 var cell = Instantiate(CellPrefab.gameObject) as GameObject;
                 this.cellMap[x, y] = cell.GetComponent<Tsl.UI.Pathfinder.Cell>();
                 cell.transform.SetParent(this.MapRoot, false);
-                this.cellMap[x, y].AstarCell = AStarPathfinder2DHex.Instance.CellMap(x, y);
+                var acell = AStarPathfinder2DHex.Instance.CellMap(x, y);
+                this.cellMap[x, y].AstarCell = acell;
+                cell.transform.localPosition = new Vector3(xofs + acell.Position.x * scale, yofs - acell.Position.y * scale, 0.0f);
+                if (x == 0 && y == 0)
+                {
+                    this.StartPoint = acell.Position;
+                }
+                if (x == h-1 && y == w - 1)
+                {
+                    this.GoalPoint = acell.Position;
+                }
             }
 
         }
+        AStarPathfinder2DHex.Instance.MapMake();
     }
 
     private void Update()
@@ -60,6 +74,7 @@ public class SceneBehaviourUIHexMap : MonoBehaviour {
 
     public void OnClickStartButton()
     {
+        AStarPathfinder2DHex.Instance.MapMake();
         if (this.goled)
         {
             Reset();

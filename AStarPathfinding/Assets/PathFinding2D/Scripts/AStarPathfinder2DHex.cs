@@ -47,17 +47,21 @@ namespace Tsl.Math.Pathfinder
                 float y = cell.Position.y + iy * sin60;
                 for (int ix = -1; ix <= 1; ix += 2)
                 {
-                    float x = cell.Position.x + ix * cos60;
+                    float x;
+                    if (iy == 0)
+                        x = cell.Position.x + ix;
+                    else
+                        x = cell.Position.x + ix * cos60;
                     var c = FindCell(new Vector2(x, y));
-                    if (c != null)
+                    if (c != cell && c != null)
                     {
                         if (!cell.Contains(c))
                         {
-                            cell.AddRelated(c, c.Cost);
+                            cell.AddRelated(c, 1.0f + c.Cost);
                         }
                         if (!c.Contains(cell))
                         {
-                            c.AddRelated(cell, cell.Cost);
+                            c.AddRelated(cell, 1.0f + cell.Cost);
                         }
                     }
                 }
@@ -95,6 +99,20 @@ namespace Tsl.Math.Pathfinder
             }
         }
 
+        public void MapMake()
+        {
+            this.logic.cells = new List<AstarCell>();
+            EachCell(cell =>
+            {
+                if (cell.CellType != AstarCell.Type.Block)
+                {
+                    cell.CellType = AstarCell.Type.Empty;
+                }
+                this.logic.cells.Add(cell);
+            });
+            this.MapReady = true;
+        }
+
         // srcのマップをコピー cellMapBodyを共有するときに使用する
         public void MapInit(AStarPathfinder2DHex src)
         {
@@ -108,9 +126,12 @@ namespace Tsl.Math.Pathfinder
 
         public void EachCell(System.Action<AstarCell> act)
         {
-            foreach (var cell in this.cellMapBody)
+            for (int iy = 0; iy < this.GridRows; ++iy)
             {
-                act(cell);
+                for (int ix = 0; ix < (this.GridColumns + 1) / 2; ++ix)
+                {
+                    act(cellMapBody[ix, iy]);
+                }
             }
         }
         public void EachLogicCell(System.Action<AstarCell> act)
@@ -126,7 +147,7 @@ namespace Tsl.Math.Pathfinder
             int y = (int)(pos.y / this.sin60 + 0.5f);
             int odd = (y & 1) == 0 ? 0 : 1;
             int x = (int)(pos.x - (odd * cos60));
-            if (y < 0 || y >= this.GridRows || x < 0 || x > (this.GridColumns + 1) / 2) return null;
+            if (y < 0 || y >= this.GridRows || x < 0 || x >= (this.GridColumns + 1) / 2) return null;
             return this.cellMapBody[x, y];
         }
 
@@ -143,15 +164,7 @@ namespace Tsl.Math.Pathfinder
         // 動的なセルの削除
         public override void RemoveCell(AstarCell cell)
         {
-            foreach (var target in cell.Related)
-            {   // taget はcellからの接続先
-                var found = target.cell.Related.Find(c => c.cell == cell);
-                if (found.cell == cell)
-                {
-                    target.cell.Related.Remove(found);
-                }
-            }
-            this.logic.cells.Remove(cell);
+            cell.CellType = AstarCell.Type.Empty;
         }
 
         // セルのタイプ別に集計する。
