@@ -23,12 +23,51 @@ namespace Tsl.Math.Pathfinder
         protected AstarCell[,] cellMapBody;
         protected int GridColumns = 1;
         protected int GridRows = 1;
-        float sin60 = Mathf.Sin(60.0f * 3.141592f / 180.0f);
-        float cos60 = Mathf.Cos(60.0f * 3.141592f / 180.0f);
+        float sin60 = Mathf.Sin(60.0f * 3.141592f / 180.0f); // 上下の幅
+        float cos60 = 0.5f; // Mathf.Cos(60.0f * 3.141592f / 180.0f);
+
+
+        public static AStarPathfinder2DHex Instance;
+
+        void Awake()
+        {
+            AStarPathfinder2DHex.Instance = this;
+        }
 
         public override void MakeRelation(AstarCell cell)
         {
+            if (this.logic.cells == null)
+            {
+                Debug.LogError("this.logic.cells is null");
+                throw new System.InvalidOperationException();
+            }
+            cell.Related.Clear();
+            for (int iy = -1; iy <= 1; ++iy)
+            {
+                float y = cell.Position.y + iy * sin60;
+                for (int ix = -1; ix <= 1; ix += 2)
+                {
+                    float x = cell.Position.x + ix * cos60;
+                    var c = FindCell(new Vector2(x, y));
+                    if (c != null)
+                    {
+                        if (!cell.Contains(c))
+                        {
+                            cell.AddRelated(c, c.Cost);
+                        }
+                        if (!c.Contains(cell))
+                        {
+                            c.AddRelated(cell, cell.Cost);
+                        }
+                    }
+                }
+            }
+            cell.RelationBuilt = true;
+        }
 
+        public AstarCell CellMap(int col, int row)
+        {
+            return this.cellMapBody[col, row];
         }
 
         // intで評価されるmapRectのグリッドセルで初期化
