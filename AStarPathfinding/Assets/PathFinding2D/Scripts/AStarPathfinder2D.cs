@@ -20,6 +20,7 @@ namespace Tsl.Math.Pathfinder
         public bool DebugHaltMode = false; // DebugHalt == trueで一時停止する
         public bool DebugHalt = false; // 一時停止（デバッグ用)
 
+        protected Rect MapRect = new Rect(0, 0, 16, 16);
         protected List<Vector2> pathList; // 結果を一時的に保存する
         protected AStarPathfindLogic logic = new AStarPathfindLogic();
 
@@ -44,12 +45,17 @@ namespace Tsl.Math.Pathfinder
         // セルやノード情報の初期化
         public abstract void Reset(bool allReset = true);
 
+        // キューにあるジョブの数を返す
+        public int InQueueCount {  get {  return this.pathFindQueue.Count; } }
 
         // PathFindをキューに入れて実行する
         public void InsertInQueue(Vector2 start, Vector2 end, System.Action<List<Vector2>> act)
         {
             this.pathFindQueue.Enqueue(new PathFindQueue { start = start, end = end, onEnd = act });
         }
+
+        private AstarCell startCell;
+        private AstarCell goalCell;
 
         public void PathFind(Vector2 start,
                              Vector2 goal,
@@ -59,6 +65,8 @@ namespace Tsl.Math.Pathfinder
             this.executeMode = mode;
             System.Action<List<Vector2>> onFinish = r =>
             {
+                RemoveCell(this.startCell);
+                RemoveCell(this.goalCell);
                 if (this.DebugHaltMode && r == null)
                 {
                     this.DebugHalt = true;
@@ -71,11 +79,14 @@ namespace Tsl.Math.Pathfinder
 
             if (mode != ExecuteMode.StepNext)
             {   // 初回のPathFind
-                var startCell = AddCellImmediate(start, AstarCell.Type.Start);
-                var goalCell = AddCellImmediate(goal, AstarCell.Type.Goal);
-                if (startCell == null || goalCell == null)
+                this.goalCell = AddCellImmediate(goal, AstarCell.Type.Goal);
+                this.startCell = AddCellImmediate(start, AstarCell.Type.Start);
+                if (this.startCell == null || this.goalCell == null)
                 {
                     Debug.LogWarning("start or gold is in block");
+                    RemoveCell(this.startCell);
+                    RemoveCell(this.goalCell);
+                    Reset(false);
                     onEnd(null);
                     return;
                 }

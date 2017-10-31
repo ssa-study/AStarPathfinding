@@ -12,7 +12,7 @@ namespace Tsl.Math.Pathfinder
     {
         public bool GridMode = true; // 最適化時に、結果をグリッドのリストに変換する
         public bool PreCalculateRelation = true; // 接続情報を事前に計算する
-        public int OptimizeLevel = 99; 
+
         private AstarCell.Type[,] cellType;
 
         public static AStarPathfinder2DOptimized Instance;
@@ -33,6 +33,16 @@ namespace Tsl.Math.Pathfinder
             // if (!this.logic.cells.Contains(cell)) this.logic.cells.Add(cell);
             setGridRelatedSearchRaycast(cell, true);
             cell.RelationBuilt = true;
+        }
+
+        // 動的なセルの削除
+        public override void RemoveCell(AstarCell cell)
+        {
+            if (cell != null)
+            {
+                setCellType(cell.Position, AstarCell.Type.Removed);
+                base.RemoveCell(cell);
+            }
         }
 
         // 到達可能なノードを全ノードからレイキャストして調べる
@@ -56,14 +66,15 @@ namespace Tsl.Math.Pathfinder
                 if (!this.GridMode)
                 {   // 中間グリッドを飛ばして最短距離で結ぶ場合
                     RaycastCell(parent.Position, cell.Position, AstarCell.Type.Removed,
-                            rcell =>
+                            (ix, iy) =>
                             {
-                                if (rcell == null) return true;
-                                if (rcell.CellType != AstarCell.Type.Removed)
+                                var cellType = this.cellType[ix, iy];
+                                if (cellType != AstarCell.Type.Removed)
                                 {   // 何かあった
-                                    if (rcell.CellType != AstarCell.Type.Block)
+                                    if (cellType != AstarCell.Type.Block)
                                     {   // ブロックもしくは圏外ではない場合
-                                        if (rcell == cell)
+                                        var rcell = this.Cell(ix, iy);
+                                        if ((rcell.Position - cell.Position).sqrMagnitude < 0.1f)
                                         {   // 見つかった!
                                             if (!parent.Contains(cell))
                                             {
@@ -87,8 +98,9 @@ namespace Tsl.Math.Pathfinder
                 else
                 {   // グリッドモード
                     RaycastCell(parent.Position, cell.Position, AstarCell.Type.NoIgnore,
-                        rcell =>
+                        (ix, iy) =>
                         {
+                            var rcell = this.Cell(ix, iy);
                             // グリッドモードではコストを計算する
                             var nowpos = rcell.Position;
                             cost += (nowpos - prevPos).magnitude;
@@ -168,7 +180,7 @@ namespace Tsl.Math.Pathfinder
         // (src,target] までDDAでトレースする
         // DDAでレイキャスト
         // (src,target] までDDAでトレースする
-        public virtual void RaycastCell(Vector2 src, Vector2 target, AstarCell.Type ignore, System.Func<AstarCell, bool> act)
+        public virtual void RaycastCell(Vector2 src, Vector2 target, AstarCell.Type ignore, System.Func<int, int, bool> act)
         {
             int ix = (int)((src.x - this.MapRect.x) / this.TileSize + 0.5f);
             int iy = (int)((src.y - this.MapRect.y) / this.TileSize + 0.5f);
@@ -189,7 +201,7 @@ namespace Tsl.Math.Pathfinder
                     if (--dx < 0) break;
                     if (this.cellType[ix, iy] != ignore)
                     {
-                        if (act(this.Cell(ix, iy))) return;
+                        if (act(ix, iy)) return;
                     }
                 }
             }
@@ -207,7 +219,7 @@ namespace Tsl.Math.Pathfinder
                     }
                     if (this.cellType[ix, iy] != ignore)
                     {
-                        if (act(this.Cell(ix, iy))) return;
+                        if (act(ix, iy)) return;
                     }
                 }
             }
@@ -225,7 +237,7 @@ namespace Tsl.Math.Pathfinder
                     }
                     if (this.cellType[ix, iy] != ignore)
                     {
-                        if (act(this.Cell(ix, iy))) return;
+                        if (act(ix, iy)) return;
                     }
                 }
             }
@@ -278,63 +290,52 @@ namespace Tsl.Math.Pathfinder
                     }
                 }
             };
+            // 角以外のセルを削除
             List<AstarCell> removeList = new List<AstarCell>();
-            if (this.OptimizeLevel > 1)
+            foreach (var cell in emptyCells)
             {
-                // 角以外のセルを削除
-                foreach (var cell in emptyCells)
+                var pos = cell.Position;
+                AstarCell.Type[,] ar = new AstarCell.Type[3, 3]; // check around
+                set3x3(pos, ar);
+                // 縦横3連ブロックチェック
+                for (int inv = 0; inv < 2; ++inv)
                 {
-                    var pos = cell.Position;
-                    AstarCell.Type[,] ar = new AstarCell.Type[3, 3]; // check around
-                    set3x3(pos, ar);
-                    // 縦横3連ブロックチェック
-                    for (int inv = 0; inv < 2; ++inv)
-                    {
-                        // x,ｙを反転させる
-                        System.Func<int, int, AstarCell.Type> m = (x, y) =>
-                        {
-                            return inv == 0 ? ar[x, y] : ar[y, x];
-                        };
+                    // x,ｙを反転させる
+                    System.Func<int, int, AstarCell.Type> m = (x, y) => { return inv == 0 ? ar[x, y] : ar[y, x]; };
 
-                        // 両サイド
-                        for (int s = 0; s <= 2; s += 2)
-                        {
-                            int u = 2 - s; // 逆サイド
-                            if (m(s, 0) == m(s, 1) && m(s, 1) == m(s, 2) && m(s, 0) == AstarCell.Type.Block)
-                            {   // サイドがすべてブロック
-                                if (m(1, 0) == AstarCell.Type.Empty && m(1, 2) == AstarCell.Type.Empty)
-                                {   // 上下3連でEmpty
-                                    if (m(u, 0) != AstarCell.Type.Block
+                    // 両サイド
+                    for (int s = 0; s <= 2; s += 2)
+                    {
+                        int u = 2 - s; // 逆サイド
+                        if (m(s, 0) == m(s, 1) && m(s, 1) == m(s, 2) && m(s, 0) == AstarCell.Type.Block)
+                        {   // サイドがすべてブロック
+                            if (m(1, 0) == AstarCell.Type.Empty && m(1, 2) == AstarCell.Type.Empty)
+                            {   // 上下3連でEmpty
+                                if (m(u, 0) != AstarCell.Type.Block
                                     && m(u, 1) != AstarCell.Type.Block
                                     && m(u, 2) != AstarCell.Type.Block)
-                                    {
-                                        removeList.Add(cell);
-                                    }
-                                }
-                                if (this.OptimizeLevel > 2)
                                 {
-
-                                    if (m(1, 0) == AstarCell.Type.Empty || m(1, 2) == AstarCell.Type.Empty)
-                                    {   // 凹角の判断
-                                        if ((m(1, 2) == AstarCell.Type.Block && m(u, 2) == AstarCell.Type.Block && m(u, 0) != AstarCell.Type.Block)
-                                        || (m(1, 0) == AstarCell.Type.Block && m(u, 0) == AstarCell.Type.Block && m(u, 2) != AstarCell.Type.Block))
-                                        {
-                                            removeList.Add(cell);
-                                        }
-                                    }
+                                    removeList.Add(cell);
+                                }
+                            }
+                            if (m(1, 0) == AstarCell.Type.Empty || m(1, 2) == AstarCell.Type.Empty)
+                            {   // 凹角の判断
+                                if ((m(1, 2) == AstarCell.Type.Block && m(u, 2) == AstarCell.Type.Block && m(u, 0) != AstarCell.Type.Block)
+                                || (m(1, 0) == AstarCell.Type.Block && m(u, 0) == AstarCell.Type.Block && m(u, 2) != AstarCell.Type.Block))
+                                {
+                                    removeList.Add(cell);
                                 }
                             }
                         }
                     }
                 }
-                foreach (var cell in removeList)
-                {
-                    cell.CellType = AstarCell.Type.Removed;
-                }
-
-                removeList.Clear();
             }
-            if (this.OptimizeLevel > 3)
+            foreach (var cell in removeList)
+            {
+                cell.CellType = AstarCell.Type.Removed;
+            }
+            removeList.Clear();
+
             if (!this.GridMode)
             {   // グリッドモードでない場合は、さらに最適化を進める
                 foreach (var cell in emptyCells.Where(c => c.CellType == AstarCell.Type.Empty))
@@ -374,7 +375,7 @@ namespace Tsl.Math.Pathfinder
                         //  □  * !□      □ * * 
                         //  *  *  ■   => * □ ■
                         // !□  ■  ■      * ■ ■
-                        if (this.OptimizeLevel > 4 && angle < 4 &&
+                        if (angle < 4 &&
                             m(0, 0) == AstarCell.Type.Removed && m(1, 0) == AstarCell.Type.Empty && m(2, 0) != AstarCell.Type.Removed
                          && m(0, 1) == AstarCell.Type.Empty && m(1, 1) == AstarCell.Type.Empty && m(2, 1) == AstarCell.Type.Block
                          && m(0, 2) != AstarCell.Type.Removed && m(1, 2) == AstarCell.Type.Block && m(2, 2) == AstarCell.Type.Block)
@@ -385,9 +386,9 @@ namespace Tsl.Math.Pathfinder
                         //  ?  *  ?      ?  *  ?
                         // !*  *  !*  => ?  □  ?
                         //  ?  *  ?      ?  *  ?
-                        if (this.OptimizeLevel > 5 && (angle == 0 || angle == 4) &&
-                            m(1,0) == AstarCell.Type.Empty && m(1,1) == AstarCell.Type.Empty && m( 1,2) == AstarCell.Type.Empty
-                          && (m(0,1) != AstarCell.Type.Empty && m(2,1) != AstarCell.Type.Empty)
+                        if ((angle == 0 || angle == 4) &&
+                            m(1, 0) == AstarCell.Type.Empty && m(1, 1) == AstarCell.Type.Empty && m(1, 2) == AstarCell.Type.Empty
+                          && (m(0, 1) != AstarCell.Type.Empty && m(2, 1) != AstarCell.Type.Empty)
                             )
                         {
                             removeList.Add(cell);
@@ -396,10 +397,10 @@ namespace Tsl.Math.Pathfinder
                         // !□  ?  *     □  □  *
                         //  □  *  □  => □  □  □
                         //  *  ? !□     *  □  □
-                        if (this.OptimizeLevel > 6 && (angle == 0 || angle == 7) &&
-                            m(0,0) != AstarCell.Type.Empty /*&& m(1,0) == AstarCell.Type.Removed */ && m(2,0) == AstarCell.Type.Empty
-                        /*&& m(0,1) == AstarCell.Type.Removed*/ && m(1,1) == AstarCell.Type.Empty /*&& m(2,1) == AstarCell.Type.Removed*/
-                        && m(0,2) == AstarCell.Type.Empty /*&& m(1,2) == AstarCell.Type.Removed */ && m(2,2) != AstarCell.Type.Empty)
+                        if ((angle == 0 || angle == 7) &&
+                            m(0, 0) != AstarCell.Type.Empty /*&& m(1,0) == AstarCell.Type.Removed */ && m(2, 0) == AstarCell.Type.Empty
+                        /*&& m(0,1) == AstarCell.Type.Removed*/ && m(1, 1) == AstarCell.Type.Empty /*&& m(2,1) == AstarCell.Type.Removed*/
+                        && m(0, 2) == AstarCell.Type.Empty /*&& m(1,2) == AstarCell.Type.Removed */ && m(2, 2) != AstarCell.Type.Empty)
                         {
                             removeList.Add(cell);
                         }
@@ -437,16 +438,20 @@ namespace Tsl.Math.Pathfinder
 
         private void setCellType(AstarCell cell)
         {
-            int ix = (int)((cell.Position.x - this.MapRect.x) / this.TileSize + 0.5f);
-            int iy = (int)((cell.Position.y - this.MapRect.y) / this.TileSize + 0.5f);
+            setCellType(cell.Position, cell.CellType);
+        }
+        private void setCellType(Vector2 pos, AstarCell.Type cellType)
+        {
+            int ix = (int)((pos.x - this.MapRect.x) / this.TileSize + 0.5f);
+            int iy = (int)((pos.y - this.MapRect.y) / this.TileSize + 0.5f);
             if (ix < 0 || ix >= this.GridWidth || iy < 0 || iy > this.GridHeight)
             {
-                Debug.LogError(string.Format("invalid cell position({0},{1})", cell.Position.x, cell.Position.y));
+                Debug.LogError(string.Format("invalid cell position({0},{1})", pos.x, pos.y));
 
             }
             else
             {
-                this.cellType[ix, iy] = cell.CellType;
+                this.cellType[ix, iy] = cellType;
             }
         }
 
@@ -458,8 +463,9 @@ namespace Tsl.Math.Pathfinder
             for (int i = 0; i < lines.Count - 1; ++i)
             {
                 if (i == 0) result.Add(lines[i]);
-                RaycastCell(lines[i], lines[i + 1], AstarCell.Type.Block, cell =>
+                RaycastCell(lines[i], lines[i + 1], AstarCell.Type.Block, (ix, iy) =>
                 {
+                    var cell = this.Cell(ix, iy);
                     if (cell != null)
                     {
                         if (cell.CellType == AstarCell.Type.Removed) cell.CellType = AstarCell.Type.SkipPoint;
@@ -471,6 +477,11 @@ namespace Tsl.Math.Pathfinder
             return result;
         }
 
+
+        public AstarCell.Type[,] GetAllCell()
+        {
+            return this.cellType;
+        }
     }
 }
 

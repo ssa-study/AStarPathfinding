@@ -39,7 +39,7 @@ namespace Tsl.Math.Pathfinder
         }
 
         // (src,target]までRayCastする
-        public override void RaycastCell(Vector2 src, Vector2 target, AstarCell.Type ignore, System.Func<AstarCell, bool> act)
+        public override void RaycastCell(Vector2 src, Vector2 target, AstarCell.Type ignore, System.Func<int,int, bool> act)
         {
             if (this.UsingUnityRaycast)
             {
@@ -55,10 +55,10 @@ namespace Tsl.Math.Pathfinder
                     int index = this.cellIndex(new Vector2(pos.y, pos.z));
                     AstarCell cell = null;
                     if (index >= 0 && index < this.cellMapBody.Count()) cell = this.cellMapBody[index];
-                    act(cell);
+                    ///act(cell);
                     return;
                 }
-                act(this.CellMap(target));
+                ///act(this.CellMap(target));
             }
             else
             {

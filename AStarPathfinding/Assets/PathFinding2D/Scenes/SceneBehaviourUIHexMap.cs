@@ -9,8 +9,8 @@ public class SceneBehaviourUIHexMap : MonoBehaviour {
 
     public Transform MapRoot;
     public GameObject CellPrefab;
-    public Rect MapRect = new Rect(0,0,16,16);
-    public float TileSize = 1.0f;
+    public int MapCols = 40;
+    public int MapRows = 20;
     public Vector2 StartPoint = new Vector2(0, 0);
     public Vector2 GoalPoint;
     public UnityEngine.UI.Text MessageText;
@@ -23,13 +23,14 @@ public class SceneBehaviourUIHexMap : MonoBehaviour {
 
     // Use this for initialization
     void Start () {
-        AStarPathfinder2DHex.Instance.MapInit(32,16);
-        int w = (int)this.MapRect.width;
-        int h = (int)this.MapRect.height;
-        this.cellMap = new Tsl.UI.Pathfinder.Cell[w,h];
-        float scale = 300.0f / 16.0f;
-        float xofs = 20.0f -160.0f;
-        float yofs = -20.0f + 160.0f;
+        AStarPathfinder2DHex.Instance.MapInit(MapCols,MapRows);
+        int w = this.MapCols / 2;
+        int h = this.MapRows;
+        this.cellMap = new Tsl.UI.Pathfinder.Cell[w, h];
+        float scale = 512.0f / 16.0f;
+        float xofs = -320.0f;
+        float yofs = -20.0f + 200.0f;
+        float lsc = 1.2f;
         for (int y = 0; y < w; ++y)
         {
             for (int x = 0; x < h; ++x)
@@ -37,6 +38,7 @@ public class SceneBehaviourUIHexMap : MonoBehaviour {
                 var cell = Instantiate(CellPrefab.gameObject) as GameObject;
                 this.cellMap[x, y] = cell.GetComponent<Tsl.UI.Pathfinder.Cell>();
                 cell.transform.SetParent(this.MapRoot, false);
+                cell.transform.localScale = new Vector3(lsc,lsc,lsc);
                 var acell = AStarPathfinder2DHex.Instance.CellMap(x, y);
                 this.cellMap[x, y].AstarCell = acell;
                 cell.transform.localPosition = new Vector3(xofs + acell.Position.x * scale, yofs - acell.Position.y * scale, 0.0f);
@@ -119,16 +121,17 @@ public class SceneBehaviourUIHexMap : MonoBehaviour {
         for (int n = 0; n < 10; ++n)
         {
             int l = UnityEngine.Random.Range(1,10);
-            Vector2 pos = new Vector2(Random.Range(this.MapRect.xMin, this.MapRect.width),
-                                      Random.Range(this.MapRect.yMin, this.MapRect.height));
+            int x = Random.Range(0, this.MapCols/2);
+            int y = Random.Range(0, this.MapRows);
             bool dir = Random.Range(0,2) == 0;
-            var range = new Rect(this.MapRect.xMin, this.MapRect.yMin, this.MapRect.width - this.TileSize, this.MapRect.height - this.TileSize);
+            //var range = new Rect(0, 0, this.MapCols/2, this.MapRows);
+            var cost = (float)Random.Range(1,8);
             while(l-- != 0)
             {
-                if (!range.Contains(pos)) break;
-                AStarPathfinder2DHex.Instance.CellMap((int)pos.x, (int)pos.y).CellType = AstarCell.Type.Block;
-                pos.x += dir ? this.TileSize : 0.0f;
-                pos.y += dir ? 0.0f : this.TileSize;
+                if (x < 0 || y < 0 || x >= this.MapCols/2 || y >= this.MapRows) break;
+                AStarPathfinder2DHex.Instance.CellMap(x, y).MoveCost = cost;
+                x += dir ? 1 : 0;
+                y += dir ? 0 : 1;
             }
         }
     }

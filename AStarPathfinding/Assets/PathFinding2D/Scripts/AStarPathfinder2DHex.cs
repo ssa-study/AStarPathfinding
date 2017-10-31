@@ -57,11 +57,11 @@ namespace Tsl.Math.Pathfinder
                     {
                         if (!cell.Contains(c))
                         {
-                            cell.AddRelated(c, 1.0f + c.Cost);
+                            cell.AddRelated(c, c.MoveCost);
                         }
                         if (!c.Contains(cell))
                         {
-                            c.AddRelated(cell, 1.0f + cell.Cost);
+                            c.AddRelated(cell, cell.MoveCost);
                         }
                     }
                 }
@@ -104,6 +104,8 @@ namespace Tsl.Math.Pathfinder
             this.logic.cells = new List<AstarCell>();
             EachCell(cell =>
             {
+                cell.RelationBuilt = false;
+                cell.Related.Clear();
                 if (cell.CellType != AstarCell.Type.Block)
                 {
                     cell.CellType = AstarCell.Type.Empty;

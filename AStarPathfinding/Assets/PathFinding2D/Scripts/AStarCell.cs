@@ -32,6 +32,7 @@ namespace Tsl.Math.Pathfinder
         public float Score = 0.0f;
         public float Cost = 0.0f;
         public float Hint = 0.0f;
+        public float MoveCost = 1.0f; // 移動コスト
         public bool RelationBuilt = false;
         // 親となるセル
         public AstarCell Parent = null;

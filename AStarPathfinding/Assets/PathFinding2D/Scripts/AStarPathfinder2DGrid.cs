@@ -13,7 +13,6 @@ namespace Tsl.Math.Pathfinder
         protected AstarCell[] cellMapBody;
         protected int GridWidth = 1;
         protected int GridHeight = 1;
-        protected Rect MapRect = new Rect(0, 0, 16, 16);
 
 
         // intで評価されるmapRectのグリッドセルで初期化
