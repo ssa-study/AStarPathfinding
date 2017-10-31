@@ -27,10 +27,10 @@ public class SceneBehaviourUIHexMap : MonoBehaviour {
         int w = this.MapCols / 2;
         int h = this.MapRows;
         this.cellMap = new Tsl.UI.Pathfinder.Cell[w, h];
-        float scale = 512.0f / 16.0f;
+        float scale = (512.0f / 16.0f) * 44.0f / this.MapCols;
         float xofs = -320.0f;
         float yofs = -20.0f + 200.0f;
-        float lsc = 1.2f;
+        float lsc = 1.2f * 42.0f / this.MapCols;
         for (int y = 0; y < w; ++y)
         {
             for (int x = 0; x < h; ++x)
